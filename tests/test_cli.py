@@ -70,3 +70,19 @@ def test_config_file_is_used(tmp_path):
     cfg = tmp_path / "c.toml"
     cfg.write_text("window_days = 0\n")
     assert run(tmp_path, "--config", str(cfg)) == 0
+
+
+def test_sheet_flags_must_come_together(tmp_path, capsys):
+    import pytest
+
+    with pytest.raises(SystemExit) as stop:
+        run(tmp_path, "--sheet", "Books")
+    assert stop.value.code == 2 and "--sheet-credentials" in capsys.readouterr().err
+
+
+def test_sheet_failure_is_reported_but_results_stay_written(tmp_path, capsys):
+    # gspread is not installed in the test environment or the key file is missing: either way
+    # the CLI must say so and still have written the CSVs.
+    code = run(tmp_path, "--sheet", "Books", "--sheet-credentials", str(tmp_path / "none.json"))
+    assert code == 2 and "Google Sheet" in capsys.readouterr().err
+    assert (tmp_path / "out" / "exceptions.csv").exists()

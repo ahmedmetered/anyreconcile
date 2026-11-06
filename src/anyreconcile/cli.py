@@ -53,11 +53,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--download-rates", action="store_true", help="download the ECB rates to --rates first"
     )
+    p.add_argument("--sheet", help="Google spreadsheet title to push exceptions to (optional)")
+    p.add_argument("--sheet-credentials", type=Path, help="Google service account JSON key")
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if bool(args.sheet) != bool(args.sheet_credentials):
+        parser.error("--sheet and --sheet-credentials must be used together")
     try:
         if args.download_rates:
             download_rates(args.rates)
@@ -75,6 +80,15 @@ def main(argv: list[str] | None = None) -> int:
     for key, value in summary(result).items():
         print(f"{key.replace('_', ' '):>22}: {value}")
     print(f"results written to {args.out}")
+    if args.sheet:
+        try:
+            from anyreconcile.sheets import push_exceptions  # optional, imported only here
+
+            n = push_exceptions(args.out / "exceptions.csv", args.sheet_credentials, args.sheet)
+        except Exception as e:  # gspread raises many types, all are reported the same way
+            print(f"error: could not update the Google Sheet: {e}", file=sys.stderr)
+            return 2
+        print(f"{n} exception rows pushed to Google Sheet '{args.sheet}'")
     return 0
 
 
