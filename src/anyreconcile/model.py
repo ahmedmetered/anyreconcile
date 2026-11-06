@@ -49,3 +49,12 @@ class Unmatched:
 
     txn: Transaction
     reason: str
+
+
+@dataclass(frozen=True)
+class Result:
+    matched: list[Match]
+    internal: list[Internal]
+    exceptions: list[Unmatched]  # payouts and bank rows that need a human
+    duplicates_dropped: int  # bank rows with an already seen bank id
+    unmatched_bank_rows: int  # bank rows left after everything else (not an error)
