@@ -41,10 +41,10 @@ def test_stripe_failed_and_canceled_payouts_are_skipped(tmp_path):
     assert [t.id for t in read_stripe(p)] == ["po_1", "po_4"]
 
 
-def test_stripe_date_with_a_time_part_is_accepted(tmp_path):
-    p = write(
-        tmp_path, "payouts.csv", STRIPE_HEADER + "po_1,2026-01-05 00:00:00,-1.00,eur,x,paid\n"
-    )
+@pytest.mark.parametrize("text", ["2026-01-05", "2026-01-05 00:00:00", "2026-01-05T00:00:00Z"])
+def test_stripe_date_with_or_without_a_time_part_is_accepted(tmp_path, text):
+    row = f"po_1,{text},-1.00,eur,x,paid" + chr(10)
+    p = write(tmp_path, "payouts.csv", STRIPE_HEADER + row)
     assert read_stripe(p)[0].date == date(2026, 1, 5)
 
 

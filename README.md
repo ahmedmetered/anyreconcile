@@ -99,7 +99,7 @@ Wise exports one CSV per currency balance. Mercury accounts count as USD, and Me
 
 Still unconfirmed, because no source shows real values:
 
-- The date text inside Stripe and Revolut files. The tool accepts `YYYY-MM-DD`, with or without a time after it.
+- The date text inside Stripe and Revolut files. No source shows a real value. Two third-party descriptions call Stripe's column a datetime. The tool accepts `YYYY-MM-DD`, with or without a time after a space or a `T`.
 - The values of Mercury's `Status` column. The tool skips `pending`, `cancelled` and `failed`.
 - Revolut's `State` column, which some export variants have. The tool ignores it.
 

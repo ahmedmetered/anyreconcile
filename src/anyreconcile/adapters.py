@@ -11,7 +11,8 @@ list could be checked (researched 2026-11-07):
   to your bank is NEGATIVE (https://docs.stripe.com/api/balance_transactions/object). We flip
   the sign so that, like the bank rows, positive means money arriving. Payouts whose
   payout_status is failed or canceled never reach the bank, so they are skipped. NOT CONFIRMED:
-  the date text inside the CSV (we accept YYYY-MM-DD, with or without a time after it).
+  the date text inside the CSV. Two third-party descriptions type the column as a datetime, so
+  we accept YYYY-MM-DD with or without a time after it (after a space or a T).
 - Wise: NOT OFFICIAL. Wise's help pages and API docs do not list CSV columns. The header comes
   from a user's mailing-list post (2023) and the ledger-autosync Wise plugin: "TransferWise ID",
   Date, Amount, Currency, Description, "Payment Reference" and others. A third-party page says
@@ -38,6 +39,7 @@ The account name of every row is the file name without ".csv".
 """
 
 import csv
+import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -121,8 +123,8 @@ def parse_amount(text: str) -> Decimal:
 
 
 def parse_date(text: str, fmt: str) -> date:
-    # Keep only the date part, so "2026-01-05 09:12:33" works with "%Y-%m-%d".
-    return datetime.strptime(text.strip().split(" ")[0], fmt).date()
+    # Keep only the date part, so "2026-01-05 09:12:33" and "2026-01-05T09:12:33Z" both work.
+    return datetime.strptime(re.split("[ T]", text.strip())[0], fmt).date()
 
 
 def _row(spec: Spec, account: str, row: dict[str, str]) -> Transaction | None:
