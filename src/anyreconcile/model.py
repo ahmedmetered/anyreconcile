@@ -2,7 +2,12 @@
 
 from dataclasses import dataclass
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
+
+
+def round2(amount: Decimal) -> Decimal:
+    """Round to cents. Used only when writing output, never during calculation."""
+    return amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 @dataclass(frozen=True)
