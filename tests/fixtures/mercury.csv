@@ -1,12 +1,12 @@
-Date,Description,Amount,Status
-01-09-2026,STRIPE TRANSFER,1100.00,Sent
-01-16-2026,STRIPE TRANSFER,625.00,Sent
-01-08-2026,Transfer from Wise,1100.00,Sent
-01-14-2026,Transfer from Wise,546.00,Sent
-01-26-2026,STRIPE TRANSFER,250.00,Sent
-01-26-2026,STRIPE TRANSFER,250.00,Sent
-01-12-2026,Hosting,-45.00,Sent
-01-19-2026,Domain,-15.00,Sent
-01-13-2026,Bank fee,-9.00,Sent
-01-27-2026,SaaS tools,-71.40,Sent
-01-21-2026,Pending card hold,-30.00,Pending
+Date (UTC),Description,Amount,Status,Source Account,Bank Description,Reference,Note,Last Four Digits,Name On Card,Category,GL Code,Timestamp,Original Currency
+01-09-2026,STRIPE TRANSFER,1100.00,Sent,Checking 0000,,,,,,,,01-09-2026 09:00:00,
+01-16-2026,STRIPE TRANSFER,625.00,Sent,Checking 0000,,,,,,,,01-16-2026 09:00:00,
+01-08-2026,Transfer from Wise,1100.00,Sent,Checking 0000,,,,,,,,01-08-2026 09:00:00,
+01-14-2026,Transfer from Wise,546.00,Sent,Checking 0000,,,,,,,,01-14-2026 09:00:00,
+01-26-2026,STRIPE TRANSFER,250.00,Sent,Checking 0000,,,,,,,,01-26-2026 09:00:00,
+01-26-2026,STRIPE TRANSFER,250.00,Sent,Checking 0000,,,,,,,,01-26-2026 09:00:00,
+01-12-2026,Hosting,-45.00,Sent,Checking 0000,,,,,,,,01-12-2026 09:00:00,
+01-19-2026,Domain,-15.00,Sent,Checking 0000,,,,,,,,01-19-2026 09:00:00,
+01-13-2026,Bank fee,-9.00,Sent,Checking 0000,,,,,,,,01-13-2026 09:00:00,
+01-27-2026,SaaS tools,-71.40,Sent,Checking 0000,,,,,,,,01-27-2026 09:00:00,
+01-21-2026,Pending card hold,-30.00,Pending,Checking 0000,,,,,,,,01-21-2026 09:00:00,

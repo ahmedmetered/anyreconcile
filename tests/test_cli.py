@@ -5,9 +5,9 @@ from conftest import FIXTURES
 from anyreconcile.cli import main
 
 STRIPE = (
-    "id,Arrival Date,Amount,Currency,Description\n"
-    "po_1,2026-01-05,500.00,EUR,STRIPE PAYOUT\n"
-    "po_2,2026-01-06,900.00,EUR,STRIPE PAYOUT\n"
+    "payout_id,payout_expected_arrival_date,net,currency,description,payout_status\n"
+    "po_1,2026-01-05,-500.00,eur,STRIPE PAYOUT,paid\n"
+    "po_2,2026-01-06,-900.00,eur,STRIPE PAYOUT,paid\n"
 )
 WISE = (
     "TransferWise ID,Date,Amount,Currency,Description,Payment Reference\n"

@@ -1,7 +1,8 @@
-__pycache__/
+*.egg-info/
 *.pyc
 .pytest_cache/
 .ruff_cache/
-*.egg-info/
+.venv*/
 .venv/
+__pycache__/
 results/

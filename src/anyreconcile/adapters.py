@@ -1,19 +1,37 @@
 """Read each source's CSV export into Transaction rows.
 
-IMPORTANT: none of the column names below could be confirmed from official documentation,
-and no real export was available when this was written. They are the best layouts found
-in public sources. Each source is one Spec, so fixing a wrong header is a one-line change.
+Each source is one Spec, so fixing a header is a one-line change. How far each column
+list could be checked (researched 2026-11-07):
 
-Assumptions per source:
-- Stripe: Dashboard Payouts export with `id`, `Arrival Date`, `Amount`, `Currency`,
-  `Description`. Amounts in major units (12.50 = 12.50). Dates as YYYY-MM-DD.
-- Wise: legacy statement layout (`TransferWise ID`, `Date`, `Amount`, `Currency`,
-  `Description`, `Payment Reference`). Dates as DD-MM-YYYY. Newer Wise exports may differ.
-- Revolut Business: `ID`, `Date completed (UTC)`, `Description`, `Reference`, `Amount`,
-  `Payment currency`. The Fee column is ignored. Timestamps like "2026-01-05 09:12:33".
-- Mercury: `Date`, `Description`, `Amount`, `Status`. No id and no currency column (accounts
-  are USD). Dates as MM-DD-YYYY, which is ambiguous with DD-MM-YYYY for days up to 12.
-  Rows whose Status is pending, cancelled or failed are skipped.
+- Stripe: OFFICIAL. The `payouts.itemized` report (Stripe Reporting API, and the Dashboard
+  export with the same column names) has these columns, from Stripe's report schema and
+  https://docs.stripe.com/reports/report-types/balance : payout_id, payout_expected_arrival_date,
+  net, currency, description, payout_status. The export must include them. gross, fee and net
+  are in major units (12.50 means 12.50). net is the effect on your Stripe balance, so a payout
+  to your bank is NEGATIVE (https://docs.stripe.com/api/balance_transactions/object). We flip
+  the sign so that, like the bank rows, positive means money arriving. Payouts whose
+  payout_status is failed or canceled never reach the bank, so they are skipped. NOT CONFIRMED:
+  the date text inside the CSV (we accept YYYY-MM-DD, with or without a time after it).
+- Wise: NOT OFFICIAL. Wise's help pages and API docs do not list CSV columns. The header comes
+  from a user's mailing-list post (2023) and the ledger-autosync Wise plugin: "TransferWise ID",
+  Date, Amount, Currency, Description, "Payment Reference" and others. A third-party page says
+  newer exports add "Date Time" and more columns, which does not affect us. Date is day first
+  (DD-MM-YYYY, from the plugin's parser). One CSV covers one currency balance.
+- Revolut Business: NOT OFFICIAL. Revolut's help pages say CSV statements exist and can carry
+  UTC and local times, and list no columns. Real header rows from two GitHub issues
+  (revolut-to-mt940 #2 and #3) and a third-party format list show these variants, all with
+  ID, Date completed (UTC), Description, Reference, Payment currency, Amount, Fee. Some
+  variants also have a "State" column whose values we could not confirm, so it is ignored.
+  The Fee column is ignored. Date text format NOT CONFIRMED (we accept YYYY-MM-DD with or
+  without a time).
+- Mercury: NOT OFFICIAL. Mercury's help pages say a CSV or XLSX export exists on the
+  Transactions page and list no columns. The header comes from the beanhub-extract Mercury
+  extractor, which accepts a file only if its header matches exactly: "Date (UTC)",
+  Description, Amount, Status, "Source Account", "Bank Description", Reference, Note,
+  "Last Four Digits", "Name On Card", Category, "GL Code", Timestamp, "Original Currency".
+  Its parser reads dates as MM-DD-YYYY. There is no id column. We treat every Mercury row as
+  USD (Mercury accounts are USD). The values of Status NOT CONFIRMED, so we skip rows whose
+  status is pending, cancelled or failed.
 
 Amounts may contain thousands commas ("1,234.50"). A comma as decimal mark is not supported.
 The account name of every row is the file name without ".csv".
@@ -43,6 +61,7 @@ class Spec:
     reference: str | None = None  # optional: the file may lack it
     status: str | None = None
     skip_status: tuple[str, ...] = ()  # lowercase status values to skip
+    negate: bool = False  # the file shows the other side of the money (Stripe net)
 
     def required(self) -> list[str]:
         """Headers that must exist. This is also how we recognise a file."""
@@ -52,12 +71,15 @@ class Spec:
 
 STRIPE = Spec(
     "stripe",
-    id="id",
-    date="Arrival Date",
+    id="payout_id",
+    date="payout_expected_arrival_date",
     date_format="%Y-%m-%d",
-    amount="Amount",
-    currency="Currency",
-    description="Description",
+    amount="net",
+    currency="currency",
+    description="description",
+    status="payout_status",
+    skip_status=("failed", "canceled"),
+    negate=True,
 )
 WISE = Spec(
     "wise",
@@ -81,10 +103,11 @@ REVOLUT = Spec(
 )
 MERCURY = Spec(
     "mercury",
-    date="Date",
+    date="Date (UTC)",
     date_format="%m-%d-%Y",
     amount="Amount",
     description="Description",
+    reference="Reference",
     fixed_currency="USD",
     status="Status",
     skip_status=("pending", "cancelled", "failed"),
@@ -105,12 +128,13 @@ def parse_date(text: str, fmt: str) -> date:
 def _row(spec: Spec, account: str, row: dict[str, str]) -> Transaction | None:
     if spec.status and row[spec.status].strip().lower() in spec.skip_status:
         return None
+    amount = parse_amount(row[spec.amount])
     return Transaction(
         source=spec.source,
         account=account,
         id=row[spec.id].strip() if spec.id else "",
         date=parse_date(row[spec.date], spec.date_format),
-        amount=parse_amount(row[spec.amount]),
+        amount=-amount if spec.negate else amount,
         currency=(row[spec.currency] if spec.currency else spec.fixed_currency).strip().upper(),
         description=row[spec.description].strip(),
         reference=(row.get(spec.reference) or "").strip() if spec.reference else "",

@@ -82,9 +82,28 @@ anyreconcile ... --sheet "Reconciliation" --sheet-credentials service-account.js
 
 This replaces the `exceptions` tab of the named spreadsheet with `exceptions.csv`. Share the spreadsheet with the service account's e-mail address first. The core never imports `gspread`.
 
-## CSV formats are unconfirmed
+## Preparing your exports
 
-No real exports were available when this was written, and the providers' documentation does not list the CSV columns. The column names in `src/anyreconcile/adapters.py` come from public descriptions and may differ from your export. The docstring at the top of that file lists each assumption. If a header differs, change the matching line in that source's `Spec`. The tests prove the matching logic. They do not prove that the adapters read real exports.
+The tool reads these columns and ignores the rest. A missing column stops the run with an error that names it.
+
+| Source | Columns the tool reads | How well the format was checked |
+|---|---|---|
+| Stripe | `payout_id`, `payout_expected_arrival_date`, `net`, `currency`, `description`, `payout_status` | Stripe's own report schema (`payouts.itemized`) and documentation |
+| Wise | `TransferWise ID`, `Date` (DD-MM-YYYY), `Amount`, `Currency`, `Description`, `Payment Reference` (optional) | A user's mailing-list post and an open-source plugin. No Wise page lists the columns. |
+| Revolut Business | `ID`, `Date completed (UTC)`, `Description`, `Reference` (optional), `Amount`, `Payment currency` | Header rows posted in GitHub issues. No Revolut page lists the columns. |
+| Mercury | `Date (UTC)` (MM-DD-YYYY), `Description`, `Amount`, `Status`, `Reference` (optional) | An open-source importer that rejects any other header. No Mercury page lists the columns. |
+
+Stripe: export the `payouts.itemized` report with at least those columns. `net` is the change in your Stripe balance, so a payout to your bank is negative, and the tool flips the sign. Payouts with status `failed` or `canceled` never reach the bank, so the tool skips them. The Payouts page export offers a column choice too. Whether it uses these exact names is unconfirmed.
+
+Wise exports one CSV per currency balance. Mercury accounts count as USD, and Mercury rows have no bank id.
+
+Still unconfirmed, because no source shows real values:
+
+- The date text inside Stripe and Revolut files. The tool accepts `YYYY-MM-DD`, with or without a time after it.
+- The values of Mercury's `Status` column. The tool skips `pending`, `cancelled` and `failed`.
+- Revolut's `State` column, which some export variants have. The tool ignores it.
+
+If an export differs, change the matching line in that source's `Spec` in `src/anyreconcile/adapters.py`. The docstring at the top of that file records the sources and dates of this research. The tests check the matching logic on synthetic files in these layouts. No test has run on a real export.
 
 ## Development
 

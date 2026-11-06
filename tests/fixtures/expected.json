@@ -5,7 +5,8 @@
     "Rates (units per 1 EUR): USD 1.10 up to 2026-01-15, then 1.25 from 2026-01-16. GBP 0.80 on every day. So 110 USD = 100 EUR (until the 15th), 125 USD = 100 EUR (from the 16th), 80 GBP = 100 EUR.",
     "Settings are the defaults: tolerance 1.00 EUR, FX spread 1.5 percent, window 3 business days (weekends skipped), internal transfers within 2 days.",
     "Keys starting with an underscore are comments and are ignored by the test. Mercury rows have no bank id, so their ids are empty.",
-    "Bank rows: wise 21, mercury 10 (the 11th line is Pending and is skipped), revolut 9 = 40 rows."
+    "Bank rows: wise 21, mercury 10 (the 11th line is Pending and is skipped), revolut 9 = 40 rows.",
+    "stripe_payouts.csv uses the Stripe payouts.itemized columns. net is the effect on the Stripe balance, so a payout of 500.00 to the bank is net -500.00 and the tool flips the sign. po_010 has net +80.00, which means 80.00 EUR goes back from the bank to Stripe (bank debit of -80.00). A 16th row, po_016, has payout_status failed and is skipped: that money never reaches the bank."
   ],
   "matched": [
     {
