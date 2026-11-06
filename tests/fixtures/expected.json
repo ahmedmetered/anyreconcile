@@ -1,0 +1,164 @@
+{
+  "_readme": [
+    "Expected output for the synthetic dataset in this folder. Written by hand BEFORE running the code.",
+    "Every number is worked out from the files here: stripe_payouts.csv, wise.csv, revolut.csv, mercury.csv and ecb_rates.csv.",
+    "Rates (units per 1 EUR): USD 1.10 up to 2026-01-15, then 1.25 from 2026-01-16. GBP 0.80 on every day. So 110 USD = 100 EUR (until the 15th), 125 USD = 100 EUR (from the 16th), 80 GBP = 100 EUR.",
+    "Settings are the defaults: tolerance 1.00 EUR, FX spread 1.5 percent, window 3 business days (weekends skipped), internal transfers within 2 days.",
+    "Keys starting with an underscore are comments and are ignored by the test. Mercury rows have no bank id, so their ids are empty.",
+    "Bank rows: wise 21, mercury 10 (the 11th line is Pending and is skipped), revolut 9 = 40 rows."
+  ],
+  "matched": [
+    {
+      "payout_id": "po_001",
+      "payout_amount": "500.00", "payout_currency": "EUR", "payout_eur": "500.00",
+      "deposit_account": "wise", "deposit_id": "W-1001", "deposit_date": "2026-01-05",
+      "deposit_amount": "500.00", "deposit_currency": "EUR", "deposit_eur": "500.00",
+      "diff_eur": "0.00",
+      "_how": "Exact match. Same amount, same day (0 business days), STRIPE in the description."
+    },
+    {
+      "payout_id": "po_002",
+      "payout_amount": "750.00", "payout_currency": "EUR", "payout_eur": "750.00",
+      "deposit_account": "wise", "deposit_id": "W-1002", "deposit_date": "2026-01-07",
+      "deposit_amount": "749.20", "deposit_currency": "EUR", "deposit_eur": "749.20",
+      "diff_eur": "0.80",
+      "_how": "Fee inside tolerance. 750.00 - 749.20 = 0.80, which is at most 1.00. Arrives 1 business day after Tuesday the 6th."
+    },
+    {
+      "payout_id": "po_005",
+      "payout_amount": "1100.00", "payout_currency": "USD", "payout_eur": "1000.00",
+      "deposit_account": "mercury", "deposit_id": "", "deposit_date": "2026-01-09",
+      "deposit_amount": "1100.00", "deposit_currency": "USD", "deposit_eur": "1000.00",
+      "diff_eur": "0.00",
+      "_how": "USD payout into a USD account. 1100 / 1.10 = 1000.00 EUR on both sides. The other 1100 USD credit on the 8th (Transfer from Wise) is an internal transfer, removed before matching, so there is no tie."
+    },
+    {
+      "payout_id": "po_004",
+      "payout_amount": "420.00", "payout_currency": "EUR", "payout_eur": "420.00",
+      "deposit_account": "wise", "deposit_id": "W-1004", "deposit_date": "2026-01-12",
+      "deposit_amount": "420.00", "deposit_currency": "EUR", "deposit_eur": "420.00",
+      "diff_eur": "0.00",
+      "_how": "Weekend. Arrival Friday the 9th, deposit Monday the 12th. The 10th and 11th are a weekend, so Monday is 1 business day later, inside the window."
+    },
+    {
+      "payout_id": "po_006",
+      "payout_amount": "550.00", "payout_currency": "USD", "payout_eur": "500.00",
+      "deposit_account": "wise", "deposit_id": "W-1005", "deposit_date": "2026-01-15",
+      "deposit_amount": "497.00", "deposit_currency": "EUR", "deposit_eur": "497.00",
+      "diff_eur": "3.00",
+      "_how": "USD payout paid out in EUR. 550 / 1.10 = 500.00 EUR. 500.00 - 497.00 = 3.00, above 1.00 but the currencies differ, so the tolerance is 1.00 + 1.5 percent of 500.00 = 8.50. Matched."
+    },
+    {
+      "payout_id": "po_010",
+      "payout_amount": "-80.00", "payout_currency": "EUR", "payout_eur": "-80.00",
+      "deposit_account": "wise", "deposit_id": "W-1008", "deposit_date": "2026-01-16",
+      "deposit_amount": "-80.00", "deposit_currency": "EUR", "deposit_eur": "-80.00",
+      "diff_eur": "0.00",
+      "_how": "Negative payout (money back to Stripe) matches a bank debit. -80.00 - (-80.00) = 0.00."
+    },
+    {
+      "payout_id": "po_007",
+      "payout_amount": "625.00", "payout_currency": "USD", "payout_eur": "500.00",
+      "deposit_account": "mercury", "deposit_id": "", "deposit_date": "2026-01-16",
+      "deposit_amount": "625.00", "deposit_currency": "USD", "deposit_eur": "500.00",
+      "diff_eur": "0.00",
+      "_how": "The rate changes on the 16th. 625 / 1.25 = 500.00 EUR, so the rate of the row's own date is used."
+    },
+    {
+      "payout_id": "po_011",
+      "payout_amount": "640.00", "payout_currency": "GBP", "payout_eur": "800.00",
+      "deposit_account": "revolut", "deposit_id": "R-2001", "deposit_date": "2026-01-20",
+      "deposit_amount": "639.50", "deposit_currency": "GBP", "deposit_eur": "799.38",
+      "diff_eur": "0.63",
+      "_how": "640 / 0.80 = 800.00 EUR. 639.50 / 0.80 = 799.375 EUR, shown as 799.38 (rounded half up at output). Gap 800 - 799.375 = 0.625, inside 1.00, shown as 0.63."
+    },
+    {
+      "payout_id": "po_013",
+      "payout_amount": "310.00", "payout_currency": "EUR", "payout_eur": "310.00",
+      "deposit_account": "wise", "deposit_id": "W-1009", "deposit_date": "2026-01-26",
+      "deposit_amount": "310.00", "deposit_currency": "EUR", "deposit_eur": "310.00",
+      "diff_eur": "0.00",
+      "_how": "Window edge. Wednesday the 21st plus 3 business days: Thu 22nd, Fri 23rd, Mon 26th. Deposit on the 26th is the last allowed day."
+    },
+    {
+      "payout_id": "po_014",
+      "payout_amount": "1000.00", "payout_currency": "EUR", "payout_eur": "1000.00",
+      "deposit_account": "wise", "deposit_id": "W-1011", "deposit_date": "2026-01-23",
+      "deposit_amount": "1000.00", "deposit_currency": "EUR", "deposit_eur": "1000.00",
+      "diff_eur": "0.00",
+      "_how": "wise.csv has two rows with id W-1011. Same bank id means one is a duplicate and is dropped, so only one candidate remains."
+    }
+  ],
+  "internal": [
+    {
+      "out_account": "wise", "out_id": "W-1012", "out_date": "2026-01-07",
+      "out_amount": "-1000.00", "out_currency": "EUR", "out_eur": "-1000.00",
+      "in_account": "mercury", "in_id": "", "in_date": "2026-01-08",
+      "in_amount": "1100.00", "in_currency": "USD", "in_eur": "1000.00",
+      "_how": "1000 EUR out of Wise on the 7th. 1100 USD / 1.10 = 1000.00 EUR into Mercury on the 8th. 1 day apart, gap 0."
+    },
+    {
+      "out_account": "wise", "out_id": "W-1013", "out_date": "2026-01-13",
+      "out_amount": "-500.00", "out_currency": "EUR", "out_eur": "-500.00",
+      "in_account": "mercury", "in_id": "", "in_date": "2026-01-14",
+      "in_amount": "546.00", "in_currency": "USD", "in_eur": "496.36",
+      "_how": "546 / 1.10 = 496.3636 EUR. Gap 500 - 496.3636 = 3.6364, which is 0.73 percent of 500, inside 1.5 percent (7.50). Not internal: Revolut -400 GBP (= -500 EUR) on the 21st and Wise +470 EUR on the 22nd, because the gap is 30 EUR (6 percent)."
+    }
+  ],
+  "exceptions": [
+    {
+      "source": "stripe", "row_id": "po_003", "row_account": "stripe", "row_date": "2026-01-07",
+      "row_amount": "300.00", "row_currency": "EUR", "row_eur": "300.00",
+      "reason": "amount differs by 4.20 EUR, above tolerance",
+      "_how": "Fee outside tolerance. The only deposit near it is W-1003, 295.80 on the 8th. 300.00 - 295.80 = 4.20, above 1.00."
+    },
+    {
+      "source": "stripe", "row_id": "po_008", "row_account": "stripe", "row_date": "2026-01-12",
+      "row_amount": "200.00", "row_currency": "EUR", "row_eur": "200.00",
+      "reason": "2 candidates with the same amount",
+      "_how": "Two payouts of 200.00 on the same day and two deposits of 200.00 on the 13th (W-1006, W-1007). Each payout fits both deposits equally, so none is guessed."
+    },
+    {
+      "source": "stripe", "row_id": "po_009", "row_account": "stripe", "row_date": "2026-01-12",
+      "row_amount": "200.00", "row_currency": "EUR", "row_eur": "200.00",
+      "reason": "2 candidates with the same amount",
+      "_how": "Same as po_008."
+    },
+    {
+      "source": "stripe", "row_id": "po_015", "row_account": "stripe", "row_date": "2026-01-23",
+      "row_amount": "250.00", "row_currency": "USD", "row_eur": "200.00",
+      "reason": "no deposit within 3 business days",
+      "_how": "250 / 1.25 = 200.00 EUR. The only deposits of 250 USD are the two identical Mercury rows, which went to exceptions first. Nothing else in the 23rd to 28th is within 10 percent of 200.00 EUR."
+    },
+    {
+      "source": "mercury", "row_id": "", "row_account": "mercury", "row_date": "2026-01-26",
+      "row_amount": "250.00", "row_currency": "USD", "row_eur": "200.00",
+      "reason": "identical rows, cannot tell a duplicate from two real transactions",
+      "_how": "Two Mercury rows with the same date, amount and description and no bank id."
+    },
+    {
+      "source": "mercury", "row_id": "", "row_account": "mercury", "row_date": "2026-01-26",
+      "row_amount": "250.00", "row_currency": "USD", "row_eur": "200.00",
+      "reason": "identical rows, cannot tell a duplicate from two real transactions",
+      "_how": "The second of the two identical rows."
+    },
+    {
+      "source": "stripe", "row_id": "po_012", "row_account": "stripe", "row_date": "2026-01-28",
+      "row_amount": "900.00", "row_currency": "EUR", "row_eur": "900.00",
+      "reason": "no deposit within 3 business days",
+      "_how": "Payout with no deposit. The 28th plus 3 business days ends Monday 2 February. W-1010 (900.00) lands on 3 February, one day too late. No credit at all in the window."
+    }
+  ],
+  "summary": {
+    "payouts": "15",
+    "matched": "10",
+    "payout_exceptions": "5",
+    "bank_exceptions": "2",
+    "internal_transfers": "2",
+    "duplicates_dropped": "1",
+    "unmatched_bank_rows": "23",
+    "matched_payout_eur": "5700.00",
+    "bank_fees_eur": "4.43",
+    "_how": "15 payouts = 10 matched + 5 exceptions (po_003, 008, 009, 012, 015). Bank rows: 40 - 1 duplicate dropped - 2 identical Mercury rows to exceptions = 37, minus 4 rows in internal pairs = 33, minus 10 deposits matched = 23 left over. Matched payout EUR: 500 + 750 + 1000 + 420 + 500 - 80 + 500 + 800 + 310 + 1000 = 5700.00. Fees: 0.80 + 3.00 + 0.625 = 4.425, shown as 4.43."
+  }
+}

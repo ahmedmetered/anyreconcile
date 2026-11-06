@@ -25,6 +25,7 @@ def reconcile(
     matches, payout_issues = match_payouts(payouts, pool, cfg, rates)
     bank_issues = duplicate_issues + internal_issues
     bank_issues.sort(key=lambda u: (u.txn.date, u.txn.account))
+    internal.sort(key=lambda pair: (pair.out.date, pair.out.id))
     return Result(
         matched=matches,
         internal=internal,
