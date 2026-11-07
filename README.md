@@ -43,7 +43,7 @@ For your own files, replace `--rates ...` with `--download-rates`. That download
 - `internal.csv`: transfers between your own accounts. Leave them out of income and expense.
 - `exceptions.csv`: payouts and bank rows that need a person. A bank row that mentions `STRIPE` and matches no payout is listed here too. The `reason` column says what happened, for example `no deposit within 3 business days`, `2 candidates with the same amount` or `amount differs by 4.20 EUR, above tolerance`.
 
-Amounts keep the precision of the source file. EUR values round to cents (half up) when written, and nowhere before.
+Amounts keep the precision of the source file. EUR values round to cents (half up) when written, and nowhere before. Text cells (description, account, id, reason) that start with `=`, `+`, `-` or `@` get a leading quote, so a spreadsheet shows them as text and does not run them as formulas.
 
 ## Matching rules
 

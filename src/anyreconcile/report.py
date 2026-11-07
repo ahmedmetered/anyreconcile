@@ -11,11 +11,16 @@ from pathlib import Path
 from anyreconcile.model import Result, Transaction, round2
 
 
+def _safe(text: str) -> str:
+    """Prefix a quote to text a spreadsheet would run as a formula (starts with = + - or @)."""
+    return "'" + text if text.startswith(("=", "+", "-", "@")) else text
+
+
 def _side(prefix: str, t: Transaction) -> dict[str, str]:
     assert t.eur is not None
     return {
-        f"{prefix}_account": t.account,
-        f"{prefix}_id": t.id,
+        f"{prefix}_account": _safe(t.account),
+        f"{prefix}_id": _safe(t.id),
         f"{prefix}_date": t.date.isoformat(),
         f"{prefix}_amount": format(t.amount, "f"),
         f"{prefix}_currency": t.currency,
@@ -55,7 +60,12 @@ def write_results(result: Result, out_dir: Path) -> None:
     for u in result.exceptions:
         side = _side("row", u.txn)
         exceptions.append(
-            {"source": u.txn.source, **side, "description": u.txn.description, "reason": u.reason}
+            {
+                "source": u.txn.source,
+                **side,
+                "description": _safe(u.txn.description),
+                "reason": _safe(u.reason),
+            }
         )
     columns = ["source"] + _columns("row") + ["description", "reason"]
     _write(out_dir / "exceptions.csv", exceptions, columns)
