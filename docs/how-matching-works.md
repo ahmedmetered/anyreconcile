@@ -40,7 +40,7 @@ After payout matching, the tool searches the bank rows that no payout used. An o
 
 1. They sit in two different accounts of yours.
 2. They are at most `internal_days` apart.
-3. Their EUR gap is small enough. In one currency the limit is `fee_tolerance_eur`. Across two currencies it is `fx_spread_pct` percent of the outgoing amount, which covers the conversion spread.
+3. Their EUR gap is small enough. In one currency the two amounts are compared at one rate (the outgoing row's), so a rate move between the two days cannot create a gap, and the limit is `fee_tolerance_eur`. Across two currencies it is `fx_spread_pct` percent of the outgoing amount, which covers the conversion spread.
 4. Neither row mentions a hint word.
 
 If a row has two equally good partners, or two rows want the same partner, every row involved goes to exceptions.

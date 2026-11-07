@@ -85,3 +85,23 @@ def test_same_currency_pair_inside_the_fee_tolerance_is_internal():
         [txn("-1000.80", account="wise"), txn("1000", account="revolut")], CFG
     )
     assert len(pairs) == 1
+
+
+# Follow-up to AUD-1: in one currency the EUR values come from two different days' rates.
+
+
+def test_same_currency_transfer_is_found_even_if_the_rate_moves_between_the_two_days():
+    # 5000 USD out on the 5th (rate 1.10) and 5000 USD in on the 6th (rate 1.25). The amounts
+    # are equal, so it is one transfer. Only the EUR values differ, because the rate moved.
+    out = txn("-5000", day=5, account="wise", currency="USD", eur="-4545.4545")
+    into = txn("5000", day=6, account="mercury", currency="USD", eur="4000", source="mercury")
+    pairs, issues, rest = find_internal([out, into], CFG)
+    assert len(pairs) == 1 and issues == [] and rest == []
+
+
+def test_same_currency_amounts_that_really_differ_are_still_not_a_transfer():
+    # 10 USD apart is about 9 EUR, above the 1.00 EUR fee tolerance.
+    out = txn("-5000", day=5, account="wise", currency="USD", eur="-4545.4545")
+    into = txn("5010", day=5, account="mercury", currency="USD", eur="4554.5455", source="mercury")
+    pairs, _, rest = find_internal([out, into], CFG)
+    assert pairs == [] and rest == [out, into]

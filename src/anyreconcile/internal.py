@@ -2,8 +2,9 @@
 
 This runs after payout matching, on the bank rows no payout used. A pair is: one row of money
 out, one row of money in, in different accounts of mine, at most `internal_days` apart, and
-equal in EUR. In one currency the gap may be at most `fee_tolerance_eur`. Across two currencies
-it may be `fx_spread_pct` percent of the amount (conversion spread). Rows that look like Stripe
+equal in EUR. In one currency the amounts are compared at one rate (the outgoing row's), and
+the gap may be at most `fee_tolerance_eur`. Across two currencies it may be `fx_spread_pct`
+percent of the amount (conversion spread). Rows that look like Stripe
 deposits are never used. If a pair is not clear-cut (a tie or a clash), every row involved
 goes to exceptions.
 """
@@ -24,11 +25,16 @@ def is_stripe_hinted(t: Transaction, cfg: Config) -> bool:
 def _score(out: Transaction, into: Transaction, cfg: Config) -> tuple | None:
     assert out.eur is not None and into.eur is not None  # fx step ran first
     days = abs((into.date - out.date).days)
-    gap = abs(-out.eur - into.eur)
     if out.account == into.account or days > cfg.internal_days:
         return None
-    same_currency = out.currency == into.currency
-    limit = cfg.fee_tolerance_eur if same_currency else abs(out.eur) * cfg.fx_spread_pct / 100
+    if out.currency == into.currency:
+        # One currency: compare the amounts themselves, valued at the outgoing row's rate,
+        # so a rate move between the two days cannot create a gap.
+        gap = abs(out.eur) * abs(out.amount + into.amount) / abs(out.amount)
+        limit = cfg.fee_tolerance_eur
+    else:
+        gap = abs(-out.eur - into.eur)
+        limit = abs(out.eur) * cfg.fx_spread_pct / 100
     if gap > limit:
         return None
     return (gap, days)
