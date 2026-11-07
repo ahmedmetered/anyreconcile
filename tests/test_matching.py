@@ -184,3 +184,12 @@ def test_a_zero_amount_payout_matches_nothing(rates):
     matches, issues = run([payout("0")], [fee, zero_row], rates)
     assert matches == []
     assert issues[0].reason == "no deposit within 3 business days"
+
+
+def test_the_window_end_is_computed_once_per_date():
+    # match_payouts asks for it once per payout and deposit pair, millions of times on a
+    # large export, so the result is cached.
+    add_business_days.cache_clear()
+    assert add_business_days(date(2026, 1, 9), 3) == date(2026, 1, 14)
+    assert add_business_days(date(2026, 1, 9), 3) == date(2026, 1, 14)
+    assert add_business_days.cache_info().hits == 1

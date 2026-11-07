@@ -16,6 +16,7 @@ Ties and clashes are never guessed, see pairing.py.
 
 from datetime import date, timedelta
 from decimal import Decimal
+from functools import cache
 
 from anyreconcile.config import Config
 from anyreconcile.fx import Rates, to_eur
@@ -30,6 +31,7 @@ STRIPE_LEFTOVER = "looks like a Stripe deposit, but no payout matches"
 NEAR_MISS = Decimal("0.10")
 
 
+@cache  # called once per payout and deposit pair, so repeated dates must not be recomputed
 def add_business_days(day: date, n: int) -> date:
     """Move forward n weekdays. Weekends are skipped, public holidays are not."""
     while n > 0:

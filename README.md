@@ -76,6 +76,10 @@ max_rate_age_days = 7         # refuse an FX rate older than this many days
 
 An account name is the bank file's name without `.csv`. `wise_eur.csv` gives the account `wise_eur`. Two bank files must not share a name, even in different folders. The tool stops with an error and asks you to rename one.
 
+## Size limits
+
+The tool compares every payout with every bank row, so the time grows with the product of the two. On a laptop, 500 payouts and 3000 bank rows take about 3 seconds, and 1000 payouts with 6000 bank rows take about 15 seconds. Split a very large export by year if you need more.
+
 ## Google Sheets (optional)
 
 ```
