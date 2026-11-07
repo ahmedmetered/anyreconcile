@@ -174,3 +174,13 @@ def test_aud6_a_near_miss_deposit_is_still_reported_for_an_in_transit_payout(rat
     p = txn("300", day=7, account="stripe", id="po_1", source="stripe", status="in_transit")
     _, issues = run([p], [deposit("295.80", day=8)], rates)
     assert issues[0].reason == "amount differs by 4.20 EUR, above tolerance"
+
+
+def test_a_zero_amount_payout_matches_nothing(rates):
+    # Zero is neither money in nor money out. It used to line up with any debit, such as a
+    # 0.50 bank fee, and with zero rows.
+    fee = deposit("-0.50", description="Bank fee")
+    zero_row = deposit("0", id="Z")
+    matches, issues = run([payout("0")], [fee, zero_row], rates)
+    assert matches == []
+    assert issues[0].reason == "no deposit within 3 business days"

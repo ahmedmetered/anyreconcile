@@ -47,7 +47,7 @@ def _gap(payout: Transaction, dep: Transaction, cfg: Config, rates: Rates) -> De
 
 
 def _in_window(payout: Transaction, dep: Transaction, cfg: Config) -> bool:
-    same_direction = (payout.amount > 0) == (dep.amount > 0)
+    same_direction = payout.amount * dep.amount > 0  # zero points nowhere, so it never matches
     first_day = payout.date - timedelta(days=cfg.early_days)
     last_day = add_business_days(payout.date, cfg.window_days)
     return same_direction and first_day <= dep.date <= last_day
