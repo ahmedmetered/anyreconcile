@@ -133,3 +133,25 @@ def test_aud7_different_names_in_different_folders_are_fine(tmp_path):
         ]
     )  # fmt: skip
     assert code == 0
+
+
+# AUD-8: a failure while writing the results printed a traceback.
+
+
+def test_aud8_an_output_path_that_is_a_file_gives_a_clean_error(tmp_path, capsys):
+    (tmp_path / "payouts.csv").write_text(STRIPE)
+    (tmp_path / "wise.csv").write_text(WISE)
+    not_a_folder = tmp_path / "results"
+    not_a_folder.write_text("I am a file")
+    code = main(
+        [
+            "--stripe", str(tmp_path / "payouts.csv"),
+            "--bank", str(tmp_path / "wise.csv"),
+            "--rates", str(FIXTURES / "ecb_rates.csv"),
+            "--out", str(not_a_folder),
+        ]
+    )  # fmt: skip
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.err.startswith("error: ")
+    assert "Traceback" not in captured.err

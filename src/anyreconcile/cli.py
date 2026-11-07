@@ -88,10 +88,10 @@ def main(argv: list[str] | None = None) -> int:
         payouts = read_stripe(args.stripe)
         bank = [t for path in args.bank for t in read_bank(path)]
         result = reconcile(payouts, bank, rates, cfg)
+        write_results(result, args.out)
     except (ValueError, OSError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
-    write_results(result, args.out)
     for key, value in summary(result).items():
         print(f"{key.replace('_', ' '):>22}: {value}")
     print(f"results written to {args.out}")
