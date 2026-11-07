@@ -37,11 +37,11 @@ def add_business_days(day: date, n: int) -> date:
     return day
 
 
-def _gap(payout: Transaction, dep: Transaction, rates: Rates) -> Decimal:
+def _gap(payout: Transaction, dep: Transaction, cfg: Config, rates: Rates) -> Decimal:
     """Payout minus deposit in EUR, both at the payout's arrival-date rate."""
-    return to_eur(payout.amount, payout.currency, payout.date, rates) - to_eur(
-        dep.amount, dep.currency, payout.date, rates
-    )
+    age = cfg.max_rate_age_days
+    payout_eur = to_eur(payout.amount, payout.currency, payout.date, rates, age)
+    return payout_eur - to_eur(dep.amount, dep.currency, payout.date, rates, age)
 
 
 def _in_window(payout: Transaction, dep: Transaction, cfg: Config) -> bool:
@@ -53,10 +53,12 @@ def _in_window(payout: Transaction, dep: Transaction, cfg: Config) -> bool:
 def _score(payout: Transaction, dep: Transaction, cfg: Config, rates: Rates) -> tuple | None:
     if not _in_window(payout, dep, cfg):
         return None
-    gap = abs(_gap(payout, dep, rates))
+    gap = abs(_gap(payout, dep, cfg, rates))
     tolerance = cfg.fee_tolerance_eur
     if payout.currency != dep.currency:
-        payout_eur = to_eur(payout.amount, payout.currency, payout.date, rates)
+        payout_eur = to_eur(
+            payout.amount, payout.currency, payout.date, rates, cfg.max_rate_age_days
+        )
         tolerance += abs(payout_eur) * cfg.fx_spread_pct / 100
     if gap > tolerance:
         return None
@@ -68,11 +70,12 @@ def _why_unmatched(
     payout: Transaction, deposits: list[Transaction], cfg: Config, rates: Rates
 ) -> str:
     """Explain a payout that had no usable candidate."""
-    payout_eur = to_eur(payout.amount, payout.currency, payout.date, rates)
+    payout_eur = to_eur(payout.amount, payout.currency, payout.date, rates, cfg.max_rate_age_days)
     near = [
-        abs(_gap(payout, d, rates))
+        abs(_gap(payout, d, cfg, rates))
         for d in deposits
-        if _in_window(payout, d, cfg) and abs(_gap(payout, d, rates)) <= abs(payout_eur) * NEAR_MISS
+        if _in_window(payout, d, cfg)
+        and abs(_gap(payout, d, cfg, rates)) <= abs(payout_eur) * NEAR_MISS
     ]
     if near:
         return f"amount differs by {round2(min(near))} EUR, above tolerance"
@@ -95,7 +98,7 @@ def match_payouts(
     result = pair_up(payouts, deposits, lambda p, d: _score(p, d, cfg, rates))
 
     matches = [
-        Match(payouts[i], deposits[j], _gap(payouts[i], deposits[j], rates))
+        Match(payouts[i], deposits[j], _gap(payouts[i], deposits[j], cfg, rates))
         for i, j in result.pairs
     ]
     reasons: dict[int, str] = {}

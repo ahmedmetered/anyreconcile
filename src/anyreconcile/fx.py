@@ -38,8 +38,11 @@ def load_rates(path: Path) -> Rates:
     return rates
 
 
-def rate(rates: Rates, currency: str, day: date) -> Decimal:
-    """Units of currency per 1 EUR on day, or on the closest earlier day that has a rate."""
+def rate(rates: Rates, currency: str, day: date, max_age_days: int = 7) -> Decimal:
+    """Units of currency per 1 EUR on day, or on the closest earlier day that has a rate.
+
+    A rate more than max_age_days old is refused, so a stale rates file cannot pass silently.
+    """
     if currency == "EUR":
         return Decimal(1)
     series = rates.get(currency)
@@ -48,17 +51,24 @@ def rate(rates: Rates, currency: str, day: date) -> Decimal:
     i = bisect_right(series, day, key=lambda point: point[0])
     if i == 0:
         raise ValueError(f"no {currency} rate on or before {day}")
-    return series[i - 1][1]
+    rate_day, value = series[i - 1]
+    if (day - rate_day).days > max_age_days:
+        raise ValueError(
+            f"no {currency} rate within {max_age_days} days before {day}. Run --download-rates"
+        )
+    return value
 
 
-def to_eur(amount: Decimal, currency: str, day: date, rates: Rates) -> Decimal:
+def to_eur(
+    amount: Decimal, currency: str, day: date, rates: Rates, max_age_days: int = 7
+) -> Decimal:
     """Convert without rounding. Rounding happens only when we write output."""
-    return amount / rate(rates, currency, day)
+    return amount / rate(rates, currency, day, max_age_days)
 
 
-def with_eur(txns: list[Transaction], rates: Rates) -> list[Transaction]:
+def with_eur(txns: list[Transaction], rates: Rates, max_age_days: int = 7) -> list[Transaction]:
     """Fill in eur on each row, using the rate for the row's own date."""
-    return [replace(t, eur=to_eur(t.amount, t.currency, t.date, rates)) for t in txns]
+    return [replace(t, eur=to_eur(t.amount, t.currency, t.date, rates, max_age_days)) for t in txns]
 
 
 def download_rates(dest: Path) -> None:

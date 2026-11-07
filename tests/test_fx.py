@@ -49,3 +49,30 @@ def test_with_eur_keeps_original_amount_and_currency(rates):
     t = Transaction("mercury", "mercury", "", date(2026, 1, 16), Decimal("625.00"), "USD")
     (out,) = with_eur([t], rates)
     assert (out.amount, out.currency, out.eur) == (Decimal("625.00"), "USD", Decimal("500"))
+
+
+# AUD-3: a rate of any age used to be accepted.
+
+
+def test_aud3_stale_rate_is_refused_with_a_hint(rates):
+    with pytest.raises(
+        ValueError, match=r"no USD rate within 7 days before 2026-09-15.*--download-rates"
+    ):
+        rate(rates, "USD", date(2026, 9, 15))
+
+
+def test_aud3_the_limit_is_inclusive_and_can_be_changed(rates):
+    # The last rate in the fixture is 2026-02-03, so the 10th is 7 days later and the 11th is 8.
+    assert rate(rates, "USD", date(2026, 2, 10)) == Decimal("1.2500")
+    with pytest.raises(ValueError, match="within 7 days"):
+        rate(rates, "USD", date(2026, 2, 11))
+    assert rate(rates, "USD", date(2026, 2, 11), max_age_days=8) == Decimal("1.2500")
+
+
+def test_aud3_with_eur_and_to_eur_pass_the_limit_on(rates):
+    t = Transaction("mercury", "mercury", "", date(2026, 2, 20), Decimal("125"), "USD")
+    with pytest.raises(ValueError, match="within 7 days"):
+        with_eur([t], rates)
+    assert with_eur([t], rates, max_age_days=30)[0].eur == Decimal("100")
+    with pytest.raises(ValueError, match="within 7 days"):
+        to_eur(Decimal("1"), "USD", date(2026, 2, 20), rates)

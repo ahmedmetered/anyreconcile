@@ -14,6 +14,7 @@ class Config:
     internal_days: int = 2  # internal transfer legs must be within N calendar days
     my_accounts: tuple[str, ...] = ()  # account names that are mine; empty means all bank files
     hint_words: tuple[str, ...] = ("STRIPE",)  # words that point to a Stripe deposit
+    max_rate_age_days: int = 7  # refuse an FX rate older than this many days
 
 
 def load_config(path: Path | None) -> Config:

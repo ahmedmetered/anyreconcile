@@ -2,7 +2,7 @@
 
 The tool runs six stages in a fixed order. The order matters, because each stage removes rows the next stage should not see.
 
-1. **Read and convert.** Each file goes through its adapter. Every row gets an EUR value at the ECB rate for its own date. Weekends and holidays use the latest earlier rate.
+1. **Read and convert.** Each file goes through its adapter. Every row gets an EUR value at the ECB rate for its own date. Weekends and holidays use the latest earlier rate. If the closest rate is more than `max_rate_age_days` old (7 by default), the run stops with an error.
 2. **Duplicates.** A repeated bank id in one account is dropped and counted. Identical rows with no bank id go to exceptions.
 3. **Payout matching.** Each payout looks for candidates among all the de-duplicated bank rows.
 4. **Internal transfers.** The tool searches the bank rows that no payout used. It pairs outgoing and incoming rows across your accounts. Paired rows go to `internal.csv`. If a pair is unclear (a tie or a clash), every row involved goes to exceptions.

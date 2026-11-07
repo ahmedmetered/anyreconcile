@@ -24,3 +24,10 @@ def test_unknown_key_is_rejected(tmp_path):
     f.write_text("fee_tolerence_eur = 1\n")
     with pytest.raises(ValueError, match="fee_tolerence_eur"):
         load_config(f)
+
+
+def test_aud3_max_rate_age_days_defaults_to_seven_and_loads_from_toml(tmp_path):
+    assert Config().max_rate_age_days == 7
+    f = tmp_path / "c.toml"
+    f.write_text("max_rate_age_days = 10\n")
+    assert load_config(f).max_rate_age_days == 10

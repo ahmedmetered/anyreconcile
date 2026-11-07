@@ -18,8 +18,8 @@ def reconcile(
     payouts: list[Transaction], bank: list[Transaction], rates: Rates, cfg: Config
 ) -> Result:
     """The whole pipeline. The order matters, see docs/how-matching-works.md."""
-    payouts = with_eur(payouts, rates)
-    bank = with_eur(bank, rates)
+    payouts = with_eur(payouts, rates, cfg.max_rate_age_days)
+    bank = with_eur(bank, rates, cfg.max_rate_age_days)
     bank, dropped, duplicate_issues = drop_duplicates(bank)
     matches, payout_issues = match_payouts(payouts, bank, cfg, rates)
     used = {id(m.deposit) for m in matches}

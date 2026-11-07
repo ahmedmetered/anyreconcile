@@ -65,3 +65,17 @@ def test_aud2_leftover_stripe_deposit_goes_to_exceptions_and_is_not_counted_as_u
         ("revolut", "looks like a Stripe deposit, but no payout matches")
     ]
     assert result.unmatched_bank_rows == 0
+
+
+# AUD-3: the pipeline refuses to convert with a stale rate.
+
+
+def test_aud3_reconcile_stops_when_the_rates_are_too_old():
+    import pytest
+
+    rows = [bank("1080.00", "mercury", currency="USD")]  # dated 2026-02-03, rates end that day
+    late = txn("1.00", month=3, day=20, account="mercury", currency="USD", source="mercury")
+    with pytest.raises(ValueError, match="no USD rate within 7 days before 2026-03-20"):
+        reconcile([], rows + [late], RATES, Config())
+    # a longer limit in the settings lets the same data through
+    reconcile([], rows + [late], RATES, Config(max_rate_age_days=60))
