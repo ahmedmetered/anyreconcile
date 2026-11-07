@@ -12,8 +12,11 @@ from anyreconcile.model import Result, Transaction, round2
 
 
 def _safe(text: str) -> str:
-    """Prefix a quote to text a spreadsheet would run as a formula (starts with = + - or @)."""
-    return "'" + text if text.startswith(("=", "+", "-", "@")) else text
+    """Prefix a quote to text a spreadsheet could run as a formula.
+
+    That is text starting with = + - @, a tab or a carriage return (OWASP's CSV injection list).
+    """
+    return "'" + text if text.startswith(("=", "+", "-", "@", "\t", "\r")) else text
 
 
 def _side(prefix: str, t: Transaction) -> dict[str, str]:

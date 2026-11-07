@@ -62,3 +62,15 @@ def test_aud5_plain_text_is_unchanged(tmp_path):
     (out,) = read(tmp_path / "exceptions.csv")
     assert (out["row_id"], out["description"]) == ("W-1001", "STRIPE PAYOUT")
     assert date.fromisoformat(out["row_date"]) == date(2026, 1, 5)
+
+
+# Follow-up to AUD-5: a leading tab or carriage return can also hide a formula.
+
+
+def test_aud5_followup_text_starting_with_a_tab_or_carriage_return_is_quoted(tmp_path):
+    tab = txn("1.00", description="\t=cmd", source="wise")
+    cr = txn("2.00", description="\r=cmd", source="wise")
+    write_results(result(exceptions=[Unmatched(tab, "ok"), Unmatched(cr, "ok")]), tmp_path)
+    first, second = read(tmp_path / "exceptions.csv")
+    assert first["description"] == "'\t=cmd"
+    assert second["description"] == "'\r=cmd"
