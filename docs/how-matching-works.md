@@ -16,10 +16,10 @@ Payout matching comes before internal transfers so that a real Stripe deposit ca
 For each payout, a deposit is a candidate when it passes all of these:
 
 1. It points the same way. A payout of money in needs a credit. A negative payout needs a debit.
-2. It lands from the payout's arrival date up to `window_days` business days later.
+2. It lands from `early_days` calendar days before the payout's arrival date (bank exports use UTC dates, so a deposit can look a day early) up to `window_days` business days after it.
 3. The EUR gap, with both amounts converted at the payout's arrival-date rate, is at most `fee_tolerance_eur`. If the currencies differ, `fx_spread_pct` percent of the payout adds to the limit.
 
-The tool ranks candidates by four keys, in order: a deposit that mentions a hint word (`STRIPE`) first, then the smaller gap, then a deposit in the payout's own currency, then the earlier date.
+The tool ranks candidates by four keys, in order: a deposit that mentions a hint word (`STRIPE`) first, then the smaller gap, then a deposit in the payout's own currency, then the date closest to the arrival date.
 
 Then the tool decides:
 
@@ -50,7 +50,7 @@ This example uses the demo data. The payout is `po_006`, 550.00 USD with arrival
 
 **Step 1: convert.** 550.00 / 1.10 = 500.00 EUR.
 
-**Step 2: window.** The window runs from Wednesday the 14th through 3 business days: Thursday the 15th, Friday the 16th, Monday the 19th. It ends on the 19th.
+**Step 2: window.** The window starts one calendar day early, on Tuesday the 13th. It runs through 3 business days after the arrival date: Thursday the 15th, Friday the 16th, Monday the 19th. It ends on the 19th.
 
 **Step 3: tolerance.** The payout is in USD. A deposit in another currency gets 1.00 EUR plus 1.5 percent of 500.00 EUR, which is 1.00 + 7.50 = 8.50 EUR. A deposit in USD gets 1.00 EUR.
 
@@ -58,6 +58,7 @@ This example uses the demo data. The payout is `po_006`, 550.00 USD with arrival
 
 | Deposit | Date | In EUR at 2026-01-14 rates | Gap to 500.00 | Limit | Result |
 |---|---|---|---|---|---|
+| Wise `W-1006` and `W-1007`, 200.00 EUR each | 13th | 200.00 | 300.00 | 8.50 | Too far off |
 | Wise `W-1005`, 497.00 EUR | 15th | 497.00 | 3.00 | 8.50 | Candidate |
 | Mercury, 625.00 USD | 16th | 568.18 | 68.18 | 1.00 | Too far off |
 | Mercury, 546.00 USD (a transfer from Wise) | 14th | 496.36 | 3.64 | 1.00 | Too far off |

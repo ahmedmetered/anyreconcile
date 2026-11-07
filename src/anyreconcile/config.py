@@ -15,6 +15,7 @@ class Config:
     my_accounts: tuple[str, ...] = ()  # account names that are mine; empty means all bank files
     hint_words: tuple[str, ...] = ("STRIPE",)  # words that point to a Stripe deposit
     max_rate_age_days: int = 7  # refuse an FX rate older than this many days
+    early_days: int = 1  # a deposit may be dated up to N calendar days before the arrival date
 
 
 def load_config(path: Path | None) -> Config:

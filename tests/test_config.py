@@ -31,3 +31,10 @@ def test_aud3_max_rate_age_days_defaults_to_seven_and_loads_from_toml(tmp_path):
     f = tmp_path / "c.toml"
     f.write_text("max_rate_age_days = 10\n")
     assert load_config(f).max_rate_age_days == 10
+
+
+def test_aud4_early_days_defaults_to_one_and_loads_from_toml(tmp_path):
+    assert Config().early_days == 1
+    f = tmp_path / "c.toml"
+    f.write_text("early_days = 0\n")
+    assert load_config(f).early_days == 0

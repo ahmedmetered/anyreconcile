@@ -57,8 +57,9 @@ def test_window_edge_is_three_business_days_and_one_more_is_too_late(rates):
     assert issues[0].reason == "no deposit within 3 business days"
 
 
-def test_deposit_before_arrival_date_is_not_a_candidate(rates):
-    _, issues = run([payout("100", day=6)], [deposit("100", day=5)], rates)
+def test_deposit_more_than_early_days_before_arrival_is_not_a_candidate(rates):
+    # One day early is allowed since AUD-4 (early_days = 1). Two days early is not.
+    _, issues = run([payout("100", day=6)], [deposit("100", day=4)], rates)
     assert len(issues) == 1
 
 
@@ -141,3 +142,18 @@ def test_same_currency_deposit_beats_a_cross_currency_one_with_the_same_gap(rate
     usd = deposit("1100", currency="USD", id="USD1", account="mercury")
     matches, issues = run([payout("1000")], [usd, eur], rates)
     assert issues == [] and matches[0].deposit.id == "EUR1"
+
+
+def test_aud4_closest_date_wins_when_hint_gap_and_currency_are_equal(rates):
+    # A deposit on the arrival date beats one a day early. Hint and gap still come first.
+    early = deposit("300", day=6, id="EARLY")
+    on_time = deposit("300", day=7, id="ONTIME")
+    matches, _ = run([payout("300", day=7)], [early, on_time], rates)
+    assert matches[0].deposit.id == "ONTIME"
+
+
+def test_aud4_hint_still_beats_a_closer_date(rates):
+    early_hint = deposit("300", day=6, id="HINT")
+    on_time = deposit("300", day=7, id="PLAIN", description="Client payment")
+    matches, _ = run([payout("300", day=7)], [on_time, early_hint], rates)
+    assert matches[0].deposit.id == "HINT"

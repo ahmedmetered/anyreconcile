@@ -51,10 +51,10 @@ The tool applies these rules in this order. [docs/how-matching-works.md](docs/ho
 
 1. **Duplicates.** Rows with the same bank id in the same account count once. Identical rows without a bank id go to exceptions, since a duplicate and two real transactions look the same.
 2. **Currency.** Every amount converts to EUR at the ECB rate for its own date. Weekends and holidays use the latest earlier rate. A rate more than 7 days old is refused with an error that points to `--download-rates`, so a stale rates file cannot pass unnoticed. Each output row keeps the original amount and currency.
-3. **Date window.** A deposit can match a payout when it lands 0 to 3 business days after the payout's arrival date. Business days skip Saturday and Sunday. The tool has no holiday calendar.
+3. **Date window.** A deposit can match a payout when it lands from 1 calendar day before to 3 business days after the payout's arrival date. The day before covers bank exports that use UTC dates. Business days skip Saturday and Sunday. The tool has no holiday calendar.
 4. **Amount.** Payout and deposit may differ by up to 1.00 EUR, which leaves room for bank fees. When the two currencies differ, 1.5 percent of the payout adds to that limit.
 5. **Direction.** A positive payout matches a bank credit. A negative payout matches a bank debit.
-6. **Best candidate.** When several deposits fit, a deposit that mentions `STRIPE` wins first, then the smaller amount gap, then a deposit in the payout's own currency, then the earlier date. Each deposit matches at most one payout.
+6. **Best candidate.** When several deposits fit, a deposit that mentions `STRIPE` wins first, then the smaller amount gap, then a deposit in the payout's own currency, then the date closest to the arrival date. Each deposit matches at most one payout.
 7. **No guessing.** When two deposits fit one payout with the same rank, or two payouts want the same deposit, none of them match. All of them go to exceptions.
 8. **Internal transfers.** Payouts match first. Among the bank rows no payout used, an outgoing row and an incoming row in two of your accounts form an internal transfer when they sit at most 2 days apart and agree in EUR. In one currency the gap may be at most 1.00 EUR. Across two currencies it may be 1.5 percent, which covers the conversion spread. Rows that mention `STRIPE` never count as internal.
 
@@ -66,6 +66,7 @@ Pass a TOML file with `--config settings.toml`. Every key is optional. These are
 fee_tolerance_eur = 1.00      # largest accepted gap between payout and deposit
 fx_spread_pct = 1.5           # allowed spread, in percent, for FX
 window_days = 3               # business days after the arrival date
+early_days = 1                # calendar days before the arrival date
 internal_days = 2             # days between the two halves of an internal transfer
 my_accounts = []              # account names that are yours; empty means every bank file
 hint_words = ["STRIPE"]       # words that mark a deposit as coming from Stripe

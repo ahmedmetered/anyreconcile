@@ -2,15 +2,16 @@
 
 A deposit is a candidate for a payout when all of these hold:
 - same direction (money in for a payout, money out for a negative payout);
-- it lands from 0 to `window_days` business days after the payout's arrival date;
+- it lands from `early_days` calendar days before to `window_days` business days after the
+  payout's arrival date (bank exports use UTC dates, so a deposit can look a day early);
 - the EUR gap between payout and deposit is within the tolerance. Both amounts are
   converted at the payout's arrival-date rate, so equal amounts in one currency always
   give a gap of zero. The tolerance is `fee_tolerance_eur`, plus `fx_spread_pct` percent of
   the payout when the two currencies differ.
 
 Among candidates the best is: a Stripe hint in the description first, then the smallest
-gap, then a deposit in the payout's own currency, then the earliest date. Ties and clashes
-are never guessed, see pairing.py.
+gap, then a deposit in the payout's own currency, then the date closest to the arrival date.
+Ties and clashes are never guessed, see pairing.py.
 """
 
 from datetime import date, timedelta
@@ -46,8 +47,9 @@ def _gap(payout: Transaction, dep: Transaction, cfg: Config, rates: Rates) -> De
 
 def _in_window(payout: Transaction, dep: Transaction, cfg: Config) -> bool:
     same_direction = (payout.amount > 0) == (dep.amount > 0)
+    first_day = payout.date - timedelta(days=cfg.early_days)
     last_day = add_business_days(payout.date, cfg.window_days)
-    return same_direction and payout.date <= dep.date <= last_day
+    return same_direction and first_day <= dep.date <= last_day
 
 
 def _score(payout: Transaction, dep: Transaction, cfg: Config, rates: Rates) -> tuple | None:
@@ -63,7 +65,7 @@ def _score(payout: Transaction, dep: Transaction, cfg: Config, rates: Rates) -> 
     if gap > tolerance:
         return None
     other_currency = payout.currency != dep.currency
-    return (not is_stripe_hinted(dep, cfg), gap, other_currency, (dep.date - payout.date).days)
+    return (not is_stripe_hinted(dep, cfg), gap, other_currency, abs((dep.date - payout.date).days))
 
 
 def _why_unmatched(

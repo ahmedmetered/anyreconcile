@@ -9,7 +9,7 @@ from anyreconcile.cli import reconcile
 from anyreconcile.config import Config
 
 # Only USD is needed. 1080 USD is exactly 1000 EUR on the day of these tests.
-RATES = {"USD": [(date(2026, 2, 3), Decimal("1.08"))]}
+RATES = {"USD": [(date(2026, 2, d), Decimal("1.08")) for d in (1, 2, 3)]}
 
 
 def payout():
@@ -79,3 +79,33 @@ def test_aud3_reconcile_stops_when_the_rates_are_too_old():
         reconcile([], rows + [late], RATES, Config())
     # a longer limit in the settings lets the same data through
     reconcile([], rows + [late], RATES, Config(max_rate_age_days=60))
+
+
+# AUD-4: UTC export dates can put a deposit a day before the expected arrival date.
+
+
+def mercury_deposit(day):
+    return txn(
+        "1080.00",
+        month=2,
+        day=day,
+        account="mercury",
+        currency="USD",
+        description="STRIPE TRANSFER",
+        source="mercury",
+    )
+
+
+def test_aud4_deposit_dated_the_day_before_the_arrival_date_matches():
+    # The payout is due Tuesday 2026-02-03. Mercury shows the deposit on Monday the 2nd.
+    result = reconcile([payout()], [mercury_deposit(2)], RATES, Config())
+    assert [(m.payout.id, m.deposit.date) for m in result.matched] == [("po_1", date(2026, 2, 2))]
+
+
+def test_aud4_the_allowance_is_one_day_by_default_and_early_days_changes_it():
+    two_days_early = mercury_deposit(1)  # Sunday 2026-02-01
+    assert reconcile([payout()], [two_days_early], RATES, Config()).matched == []
+    wider = Config(early_days=2)
+    assert len(reconcile([payout()], [two_days_early], RATES, wider).matched) == 1
+    no_allowance = Config(early_days=0)
+    assert reconcile([payout()], [mercury_deposit(2)], RATES, no_allowance).matched == []
