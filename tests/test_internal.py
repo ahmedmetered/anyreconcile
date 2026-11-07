@@ -69,3 +69,19 @@ def test_two_debits_claiming_one_credit_go_to_exceptions():
     credit = txn("500", account="mercury")
     pairs, issues, rest = find_internal([a, b, credit], CFG)
     assert pairs == [] and rest == [] and len(issues) == 3
+
+
+def test_same_currency_pair_needs_the_fee_tolerance_not_the_fx_spread():
+    # 1005 against 1000 EUR is a 0.5 percent gap, inside the 1.5 percent FX spread, but
+    # both rows are EUR, so only the 1.00 EUR fee tolerance applies.
+    out = txn("-1005", account="wise")
+    into = txn("1000", account="revolut")
+    pairs, issues, rest = find_internal([out, into], CFG)
+    assert pairs == [] and issues == [] and rest == [out, into]
+
+
+def test_same_currency_pair_inside_the_fee_tolerance_is_internal():
+    pairs, _, _ = find_internal(
+        [txn("-1000.80", account="wise"), txn("1000", account="revolut")], CFG
+    )
+    assert len(pairs) == 1

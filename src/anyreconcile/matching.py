@@ -9,7 +9,8 @@ A deposit is a candidate for a payout when all of these hold:
   the payout when the two currencies differ.
 
 Among candidates the best is: a Stripe hint in the description first, then the smallest
-gap, then the earliest date. Ties and clashes are never guessed, see pairing.py.
+gap, then a deposit in the payout's own currency, then the earliest date. Ties and clashes
+are never guessed, see pairing.py.
 """
 
 from datetime import date, timedelta
@@ -57,7 +58,8 @@ def _score(payout: Transaction, dep: Transaction, cfg: Config, rates: Rates) -> 
         tolerance += abs(payout_eur) * cfg.fx_spread_pct / 100
     if gap > tolerance:
         return None
-    return (not is_stripe_hinted(dep, cfg), gap, (dep.date - payout.date).days)
+    other_currency = payout.currency != dep.currency
+    return (not is_stripe_hinted(dep, cfg), gap, other_currency, (dep.date - payout.date).days)
 
 
 def _why_unmatched(

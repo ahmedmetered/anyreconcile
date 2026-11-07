@@ -21,8 +21,9 @@ def reconcile(
     payouts = with_eur(payouts, rates)
     bank = with_eur(bank, rates)
     bank, dropped, duplicate_issues = drop_duplicates(bank)
-    internal, internal_issues, pool = find_internal(bank, cfg)
-    matches, payout_issues = match_payouts(payouts, pool, cfg, rates)
+    matches, payout_issues = match_payouts(payouts, bank, cfg, rates)
+    used = {id(m.deposit) for m in matches}
+    internal, internal_issues, pool = find_internal([t for t in bank if id(t) not in used], cfg)
     bank_issues = duplicate_issues + internal_issues
     bank_issues.sort(key=lambda u: (u.txn.date, u.txn.account))
     internal.sort(key=lambda pair: (pair.out.date, pair.out.id))
@@ -33,7 +34,7 @@ def reconcile(
             payout_issues + bank_issues, key=lambda u: (u.txn.date, u.txn.source, u.txn.id)
         ),
         duplicates_dropped=dropped,
-        unmatched_bank_rows=len(pool) - len(matches),
+        unmatched_bank_rows=len(pool),
     )
 
 

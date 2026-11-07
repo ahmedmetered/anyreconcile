@@ -10,6 +10,7 @@ def txn(
     amount: str,
     *,
     day: int = 5,
+    month: int = 1,
     account: str = "wise",
     currency: str = "EUR",
     eur: str | None = None,
@@ -18,14 +19,14 @@ def txn(
     reference: str = "",
     source: str = "wise",
 ) -> Transaction:
-    """A row in January 2026. eur defaults to the amount when the currency is EUR."""
+    """A row in 2026 (January unless month is given). eur defaults to the amount for EUR."""
     if eur is None and currency == "EUR":
         eur = amount
     return Transaction(
         source=source,
         account=account,
         id=id,
-        date=date(2026, 1, day),
+        date=date(2026, month, day),
         amount=Decimal(amount),
         currency=currency,
         description=description,

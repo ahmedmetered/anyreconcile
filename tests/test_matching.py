@@ -132,3 +132,12 @@ def test_tolerance_comes_from_config(rates):
     cfg = Config(fee_tolerance_eur=Decimal("5"))
     matches, _ = run([payout("300", day=7)], [deposit("295.80", day=8)], rates, cfg)
     assert len(matches) == 1
+
+
+def test_same_currency_deposit_beats_a_cross_currency_one_with_the_same_gap(rates):
+    # 1100 USD is 1000 EUR on the 5th (rate 1.10), so both deposits fit equally on amount.
+    # A EUR payout normally lands in a EUR account, so the EUR deposit wins instead of a tie.
+    eur = deposit("1000", id="EUR1")
+    usd = deposit("1100", currency="USD", id="USD1", account="mercury")
+    matches, issues = run([payout("1000")], [usd, eur], rates)
+    assert issues == [] and matches[0].deposit.id == "EUR1"

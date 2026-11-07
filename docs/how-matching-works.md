@@ -4,11 +4,11 @@ The tool runs five stages in a fixed order. The order matters, because each stag
 
 1. **Read and convert.** Each file goes through its adapter. Every row gets an EUR value at the ECB rate for its own date. Weekends and holidays use the latest earlier rate.
 2. **Duplicates.** A repeated bank id in one account is dropped and counted. Identical rows with no bank id go to exceptions.
-3. **Internal transfers.** The tool pairs outgoing and incoming rows across your accounts. Paired rows go to `internal.csv`. If a pair is unclear (a tie or a clash), every row involved goes to exceptions.
-4. **Payout matching.** The remaining bank rows are the pool. Each payout looks for candidates in the pool.
+3. **Payout matching.** Each payout looks for candidates among all the de-duplicated bank rows.
+4. **Internal transfers.** The tool searches the bank rows that no payout used. It pairs outgoing and incoming rows across your accounts. Paired rows go to `internal.csv`. If a pair is unclear (a tie or a clash), every row involved goes to exceptions.
 5. **Write.** The tool writes the three CSV files and prints the summary.
 
-Internal transfers come before payout matching so that a transfer of the same size as a payout cannot take its place. Duplicates come before both so that a repeated row cannot create a false tie.
+Payout matching comes before internal transfers so that a real Stripe deposit cannot be taken as a transfer because an outgoing payment of a similar size exists. Duplicates come first so that a repeated row cannot create a false tie. A transfer that looks like a payout (same size, inside the window, no hint word) can still be picked by a payout when nothing ranks higher. A hint word, or a deposit in the payout's own currency, ranks higher, and a real tie goes to exceptions.
 
 ## Payout matching in detail
 
@@ -18,7 +18,7 @@ For each payout, a deposit is a candidate when it passes all of these:
 2. It lands from the payout's arrival date up to `window_days` business days later.
 3. The EUR gap, with both amounts converted at the payout's arrival-date rate, is at most `fee_tolerance_eur`. If the currencies differ, `fx_spread_pct` percent of the payout adds to the limit.
 
-The tool ranks candidates by three keys, in order: a deposit that mentions a hint word (`STRIPE`) first, then the smaller gap, then the earlier date.
+The tool ranks candidates by four keys, in order: a deposit that mentions a hint word (`STRIPE`) first, then the smaller gap, then a deposit in the payout's own currency, then the earlier date.
 
 Then the tool decides:
 
@@ -32,6 +32,17 @@ Then the tool decides:
 
 A payout that hits a tie or a clash does not fall back to its second choice. A second choice would be a guess.
 
+## Internal transfers in detail
+
+After payout matching, the tool searches the bank rows that no payout used. An outgoing row and an incoming row form an internal transfer when all of these hold:
+
+1. They sit in two different accounts of yours.
+2. They are at most `internal_days` apart.
+3. Their EUR gap is small enough. In one currency the limit is `fee_tolerance_eur`. Across two currencies it is `fx_spread_pct` percent of the outgoing amount, which covers the conversion spread.
+4. Neither row mentions a hint word.
+
+If a row has two equally good partners, or two rows want the same partner, every row involved goes to exceptions.
+
 ## Worked example
 
 This example uses the demo data. The payout is `po_006`, 550.00 USD with arrival date Wednesday 2026-01-14. The ECB rate that day is 1.10 USD per EUR (in the synthetic rates file).
@@ -42,12 +53,13 @@ This example uses the demo data. The payout is `po_006`, 550.00 USD with arrival
 
 **Step 3: tolerance.** The payout is in USD. A deposit in another currency gets 1.00 EUR plus 1.5 percent of 500.00 EUR, which is 1.00 + 7.50 = 8.50 EUR. A deposit in USD gets 1.00 EUR.
 
-**Step 4: look at the credits in the window.** Duplicates and internal transfers are already out of the pool.
+**Step 4: look at the credits in the window.** Duplicates are already out of the pool. Internal transfers are not, because payouts match first.
 
 | Deposit | Date | In EUR at 2026-01-14 rates | Gap to 500.00 | Limit | Result |
 |---|---|---|---|---|---|
 | Wise `W-1005`, 497.00 EUR | 15th | 497.00 | 3.00 | 8.50 | Candidate |
 | Mercury, 625.00 USD | 16th | 568.18 | 68.18 | 1.00 | Too far off |
+| Mercury, 546.00 USD (a transfer from Wise) | 14th | 496.36 | 3.64 | 1.00 | Too far off |
 | Revolut `R-2004`, 90.00 GBP | 15th | 112.50 | 387.50 | 8.50 | Too far off |
 | Wise `W-1019`, 35.00 EUR | 19th | 35.00 | 465.00 | 8.50 | Too far off |
 

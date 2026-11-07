@@ -1,10 +1,11 @@
 """Find transfers between my own accounts, so they are not counted as income or expense.
 
-A pair is: one row of money out, one row of money in, in different accounts of mine, at most
-`internal_days` apart, and equal in EUR within `fx_spread_pct` percent (conversion spread).
-Rows that look like Stripe deposits are never used, so a payout cannot be mistaken for a
-transfer. If a pair is not clear-cut (a tie or a clash), every row involved goes to
-exceptions.
+This runs after payout matching, on the bank rows no payout used. A pair is: one row of money
+out, one row of money in, in different accounts of mine, at most `internal_days` apart, and
+equal in EUR. In one currency the gap may be at most `fee_tolerance_eur`. Across two currencies
+it may be `fx_spread_pct` percent of the amount (conversion spread). Rows that look like Stripe
+deposits are never used. If a pair is not clear-cut (a tie or a clash), every row involved
+goes to exceptions.
 """
 
 from anyreconcile.config import Config
@@ -26,7 +27,9 @@ def _score(out: Transaction, into: Transaction, cfg: Config) -> tuple | None:
     gap = abs(-out.eur - into.eur)
     if out.account == into.account or days > cfg.internal_days:
         return None
-    if gap > abs(out.eur) * cfg.fx_spread_pct / 100:
+    same_currency = out.currency == into.currency
+    limit = cfg.fee_tolerance_eur if same_currency else abs(out.eur) * cfg.fx_spread_pct / 100
+    if gap > limit:
         return None
     return (gap, days)
 
