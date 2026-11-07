@@ -140,6 +140,7 @@ def _row(spec: Spec, account: str, row: dict[str, str]) -> Transaction | None:
         currency=(row[spec.currency] if spec.currency else spec.fixed_currency).strip().upper(),
         description=row[spec.description].strip(),
         reference=(row.get(spec.reference) or "").strip() if spec.reference else "",
+        status=row[spec.status].strip() if spec.status else "",
     )
 
 

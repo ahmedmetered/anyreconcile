@@ -29,7 +29,8 @@ Then the tool decides:
 | Two or more candidates share the best rank | Exception: `N candidates with the same amount` |
 | Two or more payouts pick the same best deposit | Exception for each: `N payouts fit the same deposit` |
 | No candidate, but a deposit in the window is within 10 percent of the payout | Exception: `amount differs by X EUR, above tolerance` |
-| No candidate and no near deposit | Exception: `no deposit within N business days` |
+| No candidate, no near deposit, and the payout status is `in_transit` or `pending` | Exception: `still in transit when the export was made` |
+| No candidate and no near deposit, any other status | Exception: `no deposit within N business days` |
 
 A payout that hits a tie or a clash does not fall back to its second choice. A second choice would be a guess.
 

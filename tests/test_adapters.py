@@ -116,3 +116,18 @@ def test_bad_value_reports_the_line(tmp_path):
     )
     with pytest.raises(ValueError, match=r"mercury.csv line 3"):
         read_bank(p)
+
+
+def test_status_is_kept_on_the_transaction(tmp_path):
+    p = write(tmp_path, "payouts.csv", STRIPE_HEADER + "po_1,2026-01-05,-1.00,eur,x,in_transit\n")
+    assert read_stripe(p)[0].status == "in_transit"
+    m = write(
+        tmp_path, "mercury.csv", "Date (UTC),Description,Amount,Status\n01-09-2026,x,1.00,Sent\n"
+    )
+    assert read_bank(m)[0].status == "Sent"
+    w = write(
+        tmp_path,
+        "wise.csv",
+        "TransferWise ID,Date,Amount,Currency,Description\nW-1,05-01-2026,1.00,EUR,x\n",
+    )
+    assert read_bank(w)[0].status == ""

@@ -18,6 +18,7 @@ def txn(
     description: str = "",
     reference: str = "",
     source: str = "wise",
+    status: str = "",
 ) -> Transaction:
     """A row in 2026 (January unless month is given). eur defaults to the amount for EUR."""
     if eur is None and currency == "EUR":
@@ -32,4 +33,5 @@ def txn(
         description=description,
         reference=reference,
         eur=Decimal(eur) if eur is not None else None,
+        status=status,
     )

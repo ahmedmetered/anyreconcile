@@ -109,3 +109,25 @@ def test_aud4_the_allowance_is_one_day_by_default_and_early_days_changes_it():
     assert len(reconcile([payout()], [two_days_early], RATES, wider).matched) == 1
     no_allowance = Config(early_days=0)
     assert reconcile([payout()], [mercury_deposit(2)], RATES, no_allowance).matched == []
+
+
+# AUD-6: a payout that Stripe had not paid out yet was reported as "no deposit".
+
+
+def test_aud6_in_transit_and_pending_payouts_get_their_own_reason(tmp_path):
+    from anyreconcile.adapters import read_stripe
+
+    f = tmp_path / "payouts.csv"
+    f.write_text(
+        "payout_id,payout_expected_arrival_date,net,currency,description,payout_status\n"
+        "po_1,2026-02-03,-5.00,eur,x,in_transit\n"
+        "po_2,2026-02-03,-6.00,eur,x,pending\n"
+        "po_3,2026-02-03,-7.00,eur,x,paid\n"
+    )
+    result = reconcile(read_stripe(f), [], {}, Config())
+    reasons = {u.txn.id: u.reason for u in result.exceptions}
+    assert reasons == {
+        "po_1": "still in transit when the export was made",
+        "po_2": "still in transit when the export was made",
+        "po_3": "no deposit within 3 business days",
+    }

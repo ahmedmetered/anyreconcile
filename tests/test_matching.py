@@ -157,3 +157,20 @@ def test_aud4_hint_still_beats_a_closer_date(rates):
     on_time = deposit("300", day=7, id="PLAIN", description="Client payment")
     matches, _ = run([payout("300", day=7)], [on_time, early_hint], rates)
     assert matches[0].deposit.id == "HINT"
+
+
+def test_aud6_unpaid_payouts_say_so_and_other_statuses_keep_the_usual_reason(rates):
+    def reason(status):
+        p = txn("50", day=7, account="stripe", id="po_1", source="stripe", status=status)
+        return run([p], [], rates)[1][0].reason
+
+    assert reason("in_transit") == "still in transit when the export was made"
+    assert reason("Pending") == "still in transit when the export was made"
+    assert reason("paid") == "no deposit within 3 business days"
+    assert reason("") == "no deposit within 3 business days"
+
+
+def test_aud6_a_near_miss_deposit_is_still_reported_for_an_in_transit_payout(rates):
+    p = txn("300", day=7, account="stripe", id="po_1", source="stripe", status="in_transit")
+    _, issues = run([p], [deposit("295.80", day=8)], rates)
+    assert issues[0].reason == "amount differs by 4.20 EUR, above tolerance"

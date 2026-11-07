@@ -28,6 +28,7 @@ class Transaction:
     description: str = ""
     reference: str = ""
     eur: Decimal | None = None
+    status: str = ""  # status column of the source (Stripe payout_status, Mercury Status), if any
 
 
 @dataclass(frozen=True)

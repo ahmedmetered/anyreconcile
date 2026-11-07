@@ -23,6 +23,7 @@ from anyreconcile.internal import is_stripe_hinted
 from anyreconcile.model import Match, Transaction, Unmatched, round2
 from anyreconcile.pairing import pair_up
 
+IN_TRANSIT = ("in_transit", "pending")  # Stripe payout_status values for money not yet sent
 STRIPE_LEFTOVER = "looks like a Stripe deposit, but no payout matches"
 
 # A deposit within this share of the payout counts as a near miss in the exception reason.
@@ -81,6 +82,8 @@ def _why_unmatched(
     ]
     if near:
         return f"amount differs by {round2(min(near))} EUR, above tolerance"
+    if payout.status.lower() in IN_TRANSIT:
+        return "still in transit when the export was made"
     return f"no deposit within {cfg.window_days} business days"
 
 
