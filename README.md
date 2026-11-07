@@ -87,7 +87,7 @@ This replaces the `exceptions` tab of the named spreadsheet with `exceptions.csv
 
 ## Preparing your exports
 
-The tool reads these columns and ignores the rest. A missing column stops the run with an error that names it.
+The tool reads these columns and ignores the rest. Files must be UTF-8 CSV. A missing column, a row with too few fields, a bad amount or a file in another encoding stops the run with an error that names the file and, for rows, the line.
 
 | Source | Columns the tool reads | How well the format was checked |
 |---|---|---|

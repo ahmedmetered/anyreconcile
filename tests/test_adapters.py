@@ -131,3 +131,40 @@ def test_status_is_kept_on_the_transaction(tmp_path):
         "TransferWise ID,Date,Amount,Currency,Description\nW-1,05-01-2026,1.00,EUR,x\n",
     )
     assert read_bank(w)[0].status == ""
+
+
+# Malformed rows and files must give an error that says where and what, never a traceback.
+
+WISE_HEADER = "TransferWise ID,Date,Amount,Currency,Description\n"
+
+
+def test_a_row_with_too_few_fields_names_the_missing_column(tmp_path):
+    p = write(tmp_path, "wise.csv", WISE_HEADER + "W-1,05-01-2026,500.00\n")
+    with pytest.raises(ValueError, match=r"wise\.csv line 2.*no value for Currency"):
+        read_bank(p)
+
+
+def test_a_stripe_row_with_too_few_fields_names_the_missing_column(tmp_path):
+    p = write(tmp_path, "payouts.csv", STRIPE_HEADER + "po_1,2026-01-05,-5.00\n")
+    with pytest.raises(ValueError, match=r"payouts\.csv line 2.*no value for"):
+        read_stripe(p)
+
+
+def test_an_empty_or_text_amount_says_what_is_wrong(tmp_path):
+    for bad in ("", "abc", "12,5,3x"):
+        p = write(tmp_path, "wise.csv", WISE_HEADER + f'W-1,05-01-2026,"{bad}",EUR,x\n')
+        with pytest.raises(ValueError, match=r"wise\.csv line 2: bad amount"):
+            read_bank(p)
+
+
+def test_a_file_that_is_not_utf8_names_the_file_and_the_fix(tmp_path):
+    p = tmp_path / "wise.csv"
+    p.write_bytes(WISE_HEADER.encode() + b"W-1,05-01-2026,5.00,EUR,Caf\xe9\n")
+    with pytest.raises(
+        ValueError, match=r"wise\.csv: not a UTF-8 text file.*Save the export as UTF-8"
+    ):
+        read_bank(p)
+    q = tmp_path / "payouts.csv"
+    q.write_bytes(STRIPE_HEADER.encode() + b"po_1,2026-01-05,-1.00,eur,Caf\xe9,paid\n")
+    with pytest.raises(ValueError, match=r"payouts\.csv: not a UTF-8 text file"):
+        read_stripe(q)

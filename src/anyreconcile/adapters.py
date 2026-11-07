@@ -119,7 +119,13 @@ BANK_SPECS = (WISE, REVOLUT, MERCURY)
 
 
 def parse_amount(text: str) -> Decimal:
-    return Decimal(text.replace(",", "").strip())
+    try:
+        amount = Decimal(text.replace(",", "").strip())
+    except InvalidOperation:
+        raise ValueError(f"bad amount {text!r}") from None
+    if not amount.is_finite():
+        raise ValueError(f"bad amount {text!r}")
+    return amount
 
 
 def parse_date(text: str, fmt: str) -> date:
@@ -128,42 +134,57 @@ def parse_date(text: str, fmt: str) -> date:
 
 
 def _row(spec: Spec, account: str, row: dict[str, str]) -> Transaction | None:
-    if spec.status and row[spec.status].strip().lower() in spec.skip_status:
+    def cell(column: str) -> str:
+        value = row.get(column)  # None when the row has fewer fields than the header
+        if value is None:
+            raise ValueError(f"no value for {column}")
+        return value.strip()
+
+    if spec.status and cell(spec.status).lower() in spec.skip_status:
         return None
-    amount = parse_amount(row[spec.amount])
+    amount = parse_amount(cell(spec.amount))
     return Transaction(
         source=spec.source,
         account=account,
-        id=row[spec.id].strip() if spec.id else "",
-        date=parse_date(row[spec.date], spec.date_format),
+        id=cell(spec.id) if spec.id else "",
+        date=parse_date(cell(spec.date), spec.date_format),
         amount=-amount if spec.negate else amount,
-        currency=(row[spec.currency] if spec.currency else spec.fixed_currency).strip().upper(),
-        description=row[spec.description].strip(),
+        currency=(cell(spec.currency) if spec.currency else spec.fixed_currency).upper(),
+        description=cell(spec.description),
         reference=(row.get(spec.reference) or "").strip() if spec.reference else "",
-        status=row[spec.status].strip() if spec.status else "",
+        status=cell(spec.status) if spec.status else "",
+    )
+
+
+def _not_utf8(path: Path, error: UnicodeDecodeError) -> ValueError:
+    return ValueError(
+        f"{path.name}: not a UTF-8 text file ({error.reason}). Save the export as UTF-8 CSV."
     )
 
 
 def read_file(path: Path, spec: Spec) -> list[Transaction]:
     """Read one file with a known spec. Errors name the file and the line."""
     account = "stripe" if spec.source == "stripe" else path.stem
-    with path.open(newline="", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        header = reader.fieldnames or []
-        missing = [h for h in spec.required() if h not in header]
-        if missing:
-            raise ValueError(
-                f"{path.name}: expected {spec.source} column(s) {missing} but the header is "
-                f"{header}. Change the column names in adapters.py if the export differs."
-            )
-        out = []
-        for line, row in enumerate(reader, start=2):  # line 1 is the header
-            try:
-                txn = _row(spec, account, row)
-            except (ValueError, InvalidOperation, KeyError) as e:
-                raise ValueError(f"{path.name} line {line}: bad value ({e!r})") from e
-            if txn:
-                out.append(txn)
+    try:
+        with path.open(newline="", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            header = reader.fieldnames or []
+            missing = [h for h in spec.required() if h not in header]
+            if missing:
+                raise ValueError(
+                    f"{path.name}: expected {spec.source} column(s) {missing} but the header is "
+                    f"{header}. Change the column names in adapters.py if the export differs."
+                )
+            out = []
+            for line, row in enumerate(reader, start=2):  # line 1 is the header
+                try:
+                    txn = _row(spec, account, row)
+                except ValueError as e:
+                    raise ValueError(f"{path.name} line {line}: {e}") from e
+                if txn:
+                    out.append(txn)
+    except UnicodeDecodeError as e:
+        raise _not_utf8(path, e) from e
     return out
 
 
@@ -177,8 +198,11 @@ def detect(header: list[str]) -> Spec:
 
 
 def read_bank(path: Path) -> list[Transaction]:
-    with path.open(newline="", encoding="utf-8-sig") as f:
-        header = next(csv.reader(f), [])
+    try:
+        with path.open(newline="", encoding="utf-8-sig") as f:
+            header = next(csv.reader(f), [])
+    except UnicodeDecodeError as e:
+        raise _not_utf8(path, e) from e
     try:
         spec = detect(header)
     except ValueError as e:
