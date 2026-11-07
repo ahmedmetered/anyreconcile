@@ -61,7 +61,7 @@ The tool applies these rules in this order. [docs/how-matching-works.md](docs/ho
 
 ## Settings
 
-Pass a TOML file with `--config settings.toml`. Every key is optional. These are the defaults:
+Pass a TOML file with `--config settings.toml`. Every key is optional. A wrong type, a negative number or an unknown key stops the run with an error that names the key. These are the defaults:
 
 ```toml
 fee_tolerance_eur = 1.00      # largest accepted gap between payout and deposit

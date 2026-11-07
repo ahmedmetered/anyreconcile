@@ -38,3 +38,43 @@ def test_aud4_early_days_defaults_to_one_and_loads_from_toml(tmp_path):
     f = tmp_path / "c.toml"
     f.write_text("early_days = 0\n")
     assert load_config(f).early_days == 0
+
+
+# Settings from the TOML file are checked, so a typo cannot crash the run or quietly give
+# wrong results (a string for hint_words used to be split into single letters).
+
+
+@pytest.mark.parametrize(
+    ("line", "key"),
+    [
+        ('window_days = "3"', "window_days"),
+        ("window_days = -1", "window_days"),
+        ("window_days = 2.5", "window_days"),
+        ("early_days = true", "early_days"),
+        ("max_rate_age_days = -7", "max_rate_age_days"),
+        ('fee_tolerance_eur = "abc"', "fee_tolerance_eur"),
+        ("fee_tolerance_eur = -1", "fee_tolerance_eur"),
+        ('fx_spread_pct = "nan"', "fx_spread_pct"),
+        ('hint_words = "STRIPE"', "hint_words"),
+        ('hint_words = [""]', "hint_words"),
+        ("hint_words = [5]", "hint_words"),
+        ("my_accounts = 5", "my_accounts"),
+    ],
+)
+def test_bad_setting_is_an_error_that_names_the_key(tmp_path, line, key):
+    f = tmp_path / "c.toml"
+    f.write_text(line + "\n")
+    with pytest.raises(ValueError, match=key):
+        load_config(f)
+
+
+def test_valid_settings_still_load(tmp_path):
+    f = tmp_path / "c.toml"
+    f.write_text(
+        'window_days = 0\nearly_days = 0\nfee_tolerance_eur = "0.5"\nfx_spread_pct = 2\n'
+        'hint_words = ["STRIPE", "PAYOUT"]\nmy_accounts = []\n'
+    )
+    cfg = load_config(f)
+    assert (cfg.window_days, cfg.early_days) == (0, 0)
+    assert (cfg.fee_tolerance_eur, cfg.fx_spread_pct) == (Decimal("0.5"), Decimal("2"))
+    assert cfg.hint_words == ("STRIPE", "PAYOUT") and cfg.my_accounts == ()

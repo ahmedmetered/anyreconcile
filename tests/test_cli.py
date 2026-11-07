@@ -155,3 +155,12 @@ def test_aud8_an_output_path_that_is_a_file_gives_a_clean_error(tmp_path, capsys
     assert code == 2
     assert captured.err.startswith("error: ")
     assert "Traceback" not in captured.err
+
+
+def test_a_bad_setting_gives_a_clean_error_and_no_output(tmp_path, capsys):
+    cfg = tmp_path / "c.toml"
+    cfg.write_text('hint_words = "STRIPE"\n')
+    assert run(tmp_path, "--config", str(cfg)) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("error: ") and "hint_words" in err and "Traceback" not in err
+    assert not (tmp_path / "out").exists()
