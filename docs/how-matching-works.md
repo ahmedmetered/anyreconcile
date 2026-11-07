@@ -75,9 +75,16 @@ This example uses the demo data. The payout is `po_006`, 550.00 USD with arrival
 | Edge case | Code | Test |
 |---|---|---|
 | Weekend and holiday rates | `fx.rate` | `test_fx.py` |
+| Stale rates file | `fx.rate` (`max_age_days`) | `test_fx.py` |
+| Deposit dated a day early (UTC) | `matching._in_window` (`early_days`) | `test_reconcile.py` |
 | Business day arithmetic | `matching.add_business_days` | `test_matching.py` |
 | Tie, clash, no guessing | `pairing.pair_up` | `test_pairing.py` |
 | Same bank id twice, identical rows without id | `duplicates.drop_duplicates` | `test_duplicates.py` |
 | Internal transfers with FX spread | `internal.find_internal` | `test_internal.py` |
+| Payout matched before a look-alike transfer | `cli.reconcile` | `test_reconcile.py` |
+| Leftover STRIPE deposit | `matching.stripe_leftovers` | `test_reconcile.py` |
+| Payout still in transit | `matching._why_unmatched` | `test_matching.py`, `test_reconcile.py` |
 | Negative payouts | `matching._in_window` | `test_matching.py` |
 | Rounding at output, not before | `report.write_results`, `model.round2` | `test_end_to_end.py` |
+| Formula-like text in the CSV files | `report._safe` | `test_report.py` |
+| Two bank files with the same name | `cli.check_account_names` | `test_cli.py` |
