@@ -73,7 +73,7 @@ hint_words = ["STRIPE"]       # words that mark a deposit as coming from Stripe
 max_rate_age_days = 7         # refuse an FX rate older than this many days
 ```
 
-An account name is the bank file's name without `.csv`. `wise_eur.csv` gives the account `wise_eur`.
+An account name is the bank file's name without `.csv`. `wise_eur.csv` gives the account `wise_eur`. Two bank files must not share a name, even in different folders. The tool stops with an error and asks you to rename one.
 
 ## Google Sheets (optional)
 

@@ -39,6 +39,18 @@ def reconcile(
     )
 
 
+def check_account_names(paths: list[Path]) -> None:
+    """The account name is the file name without .csv, so two files must not share it."""
+    seen: dict[str, Path] = {}
+    for path in paths:
+        if path.stem in seen:
+            raise ValueError(
+                f"the bank files {seen[path.stem]} and {path} both give the account name "
+                f"'{path.stem}'. Rename one file so each account has its own name."
+            )
+        seen[path.stem] = path
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="anyreconcile", description="Match Stripe payouts to bank deposits."
@@ -70,6 +82,7 @@ def main(argv: list[str] | None = None) -> int:
             download_rates(args.rates)
         if not args.rates.exists():
             raise ValueError(f"rates file {args.rates} not found. Use --download-rates to get it.")
+        check_account_names(args.bank)
         cfg = load_config(args.config)
         rates = load_rates(args.rates)
         payouts = read_stripe(args.stripe)

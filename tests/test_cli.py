@@ -86,3 +86,50 @@ def test_sheet_failure_is_reported_but_results_stay_written(tmp_path, capsys):
     code = run(tmp_path, "--sheet", "Books", "--sheet-credentials", str(tmp_path / "none.json"))
     assert code == 2 and "Google Sheet" in capsys.readouterr().err
     assert (tmp_path / "out" / "exceptions.csv").exists()
+
+
+# AUD-7: the account name is the file stem, so two files called eur.csv became one account.
+
+REVOLUT = (
+    "ID,Date completed (UTC),Description,Reference,Amount,Fee,Payment currency\n"
+    "R-1,2026-01-05,STRIPE PAYOUT,,500.00,0.00,EUR\n"
+)
+
+
+def test_aud7_two_bank_files_with_the_same_name_are_an_error(tmp_path, capsys):
+    (tmp_path / "wise").mkdir()
+    (tmp_path / "revolut").mkdir()
+    (tmp_path / "wise" / "eur.csv").write_text(WISE)
+    (tmp_path / "revolut" / "eur.csv").write_text(REVOLUT)
+    (tmp_path / "payouts.csv").write_text(STRIPE)
+    code = main(
+        [
+            "--stripe", str(tmp_path / "payouts.csv"),
+            "--bank", str(tmp_path / "wise" / "eur.csv"),
+            "--bank", str(tmp_path / "revolut" / "eur.csv"),
+            "--rates", str(FIXTURES / "ecb_rates.csv"),
+            "--out", str(tmp_path / "out"),
+        ]
+    )  # fmt: skip
+    err = capsys.readouterr().err
+    assert code == 2
+    assert "'eur'" in err and "Rename one file" in err
+    assert not (tmp_path / "out").exists()  # nothing was written
+
+
+def test_aud7_different_names_in_different_folders_are_fine(tmp_path):
+    (tmp_path / "wise").mkdir()
+    (tmp_path / "revolut").mkdir()
+    (tmp_path / "wise" / "wise_eur.csv").write_text(WISE)
+    (tmp_path / "revolut" / "revolut_eur.csv").write_text(REVOLUT)
+    (tmp_path / "payouts.csv").write_text(STRIPE)
+    code = main(
+        [
+            "--stripe", str(tmp_path / "payouts.csv"),
+            "--bank", str(tmp_path / "wise" / "wise_eur.csv"),
+            "--bank", str(tmp_path / "revolut" / "revolut_eur.csv"),
+            "--rates", str(FIXTURES / "ecb_rates.csv"),
+            "--out", str(tmp_path / "out"),
+        ]
+    )  # fmt: skip
+    assert code == 0
