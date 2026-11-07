@@ -25,10 +25,10 @@ The terminal shows this summary for the demo data:
                payouts: 15
                matched: 10
      payout exceptions: 5
-       bank exceptions: 2
+       bank exceptions: 6
     internal transfers: 2
     duplicates dropped: 1
-   unmatched bank rows: 23
+   unmatched bank rows: 19
     matched payout eur: 5700.00
          bank fees eur: 4.43
 ```
@@ -41,7 +41,7 @@ For your own files, replace `--rates ...` with `--download-rates`. That download
 
 - `matched.csv`: each payout with its deposit, the original amounts and currencies, the EUR values, and `diff_eur` (the fee, in EUR).
 - `internal.csv`: transfers between your own accounts. Leave them out of income and expense.
-- `exceptions.csv`: payouts and bank rows that need a person. The `reason` column says what happened, for example `no deposit within 3 business days`, `2 candidates with the same amount` or `amount differs by 4.20 EUR, above tolerance`.
+- `exceptions.csv`: payouts and bank rows that need a person. A bank row that mentions `STRIPE` and matches no payout is listed here too. The `reason` column says what happened, for example `no deposit within 3 business days`, `2 candidates with the same amount` or `amount differs by 4.20 EUR, above tolerance`.
 
 Amounts keep the precision of the source file. EUR values round to cents (half up) when written, and nowhere before.
 

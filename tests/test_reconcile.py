@@ -53,3 +53,15 @@ def test_aud1_b_payout_matches_first_then_the_rest_pairs_as_internal():
     assert [(m.payout.id, m.deposit.account) for m in result.matched] == [("po_1", "revolut")]
     assert [(i.out.account, i.into.account) for i in result.internal] == [("wise", "mercury")]
     assert result.exceptions == []
+
+
+# AUD-2: a leftover STRIPE deposit was only counted, never listed.
+
+
+def test_aud2_leftover_stripe_deposit_goes_to_exceptions_and_is_not_counted_as_unmatched():
+    rows = [bank("750.00", "revolut", description="STRIPE PAYOUT")]
+    result = reconcile([], rows, {}, Config())
+    assert [(u.txn.account, u.reason) for u in result.exceptions] == [
+        ("revolut", "looks like a Stripe deposit, but no payout matches")
+    ]
+    assert result.unmatched_bank_rows == 0

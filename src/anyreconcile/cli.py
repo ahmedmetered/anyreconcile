@@ -9,7 +9,7 @@ from anyreconcile.config import Config, load_config
 from anyreconcile.duplicates import drop_duplicates
 from anyreconcile.fx import Rates, download_rates, load_rates, with_eur
 from anyreconcile.internal import find_internal
-from anyreconcile.matching import match_payouts
+from anyreconcile.matching import match_payouts, stripe_leftovers
 from anyreconcile.model import Result, Transaction
 from anyreconcile.report import summary, write_results
 
@@ -24,7 +24,8 @@ def reconcile(
     matches, payout_issues = match_payouts(payouts, bank, cfg, rates)
     used = {id(m.deposit) for m in matches}
     internal, internal_issues, pool = find_internal([t for t in bank if id(t) not in used], cfg)
-    bank_issues = duplicate_issues + internal_issues
+    stripe_issues, pool = stripe_leftovers(pool, cfg)
+    bank_issues = duplicate_issues + internal_issues + stripe_issues
     bank_issues.sort(key=lambda u: (u.txn.date, u.txn.account))
     internal.sort(key=lambda pair: (pair.out.date, pair.out.id))
     return Result(

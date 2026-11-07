@@ -31,7 +31,7 @@
       "deposit_account": "mercury", "deposit_id": "", "deposit_date": "2026-01-09",
       "deposit_amount": "1100.00", "deposit_currency": "USD", "deposit_eur": "1000.00",
       "diff_eur": "0.00",
-      "_how": "USD payout into a USD account. 1100 / 1.10 = 1000.00 EUR on both sides. The other 1100 USD credit on the 8th (Transfer from Wise) is an internal transfer, removed before matching, so there is no tie."
+      "_how": "USD payout into a USD account. 1100 / 1.10 = 1000.00 EUR on both sides. The other 1100 USD credit on the 8th (Transfer from Wise) has no STRIPE hint, so the hinted Mercury row ranks higher and there is no tie. That credit pairs with the Wise transfer afterwards."
     },
     {
       "payout_id": "po_004",
@@ -114,6 +114,12 @@
       "_how": "Fee outside tolerance. The only deposit near it is W-1003, 295.80 on the 8th. 300.00 - 295.80 = 4.20, above 1.00."
     },
     {
+      "source": "wise", "row_id": "W-1003", "row_account": "wise", "row_date": "2026-01-08",
+      "row_amount": "295.80", "row_currency": "EUR", "row_eur": "295.80",
+      "reason": "looks like a Stripe deposit, but no payout matches",
+      "_how": "The 295.80 deposit that po_003 came close to. po_003 is an exception, so this STRIPE deposit has no payout and needs a look."
+    },
+    {
       "source": "stripe", "row_id": "po_008", "row_account": "stripe", "row_date": "2026-01-12",
       "row_amount": "200.00", "row_currency": "EUR", "row_eur": "200.00",
       "reason": "2 candidates with the same amount",
@@ -124,6 +130,18 @@
       "row_amount": "200.00", "row_currency": "EUR", "row_eur": "200.00",
       "reason": "2 candidates with the same amount",
       "_how": "Same as po_008."
+    },
+    {
+      "source": "wise", "row_id": "W-1006", "row_account": "wise", "row_date": "2026-01-13",
+      "row_amount": "200.00", "row_currency": "EUR", "row_eur": "200.00",
+      "reason": "looks like a Stripe deposit, but no payout matches",
+      "_how": "One of the two 200.00 deposits that tied for po_008 and po_009. Neither payout could take it, so it has no payout."
+    },
+    {
+      "source": "wise", "row_id": "W-1007", "row_account": "wise", "row_date": "2026-01-13",
+      "row_amount": "200.00", "row_currency": "EUR", "row_eur": "200.00",
+      "reason": "looks like a Stripe deposit, but no payout matches",
+      "_how": "The other 200.00 deposit of the tie. Same reasoning as W-1006."
     },
     {
       "source": "stripe", "row_id": "po_015", "row_account": "stripe", "row_date": "2026-01-23",
@@ -148,18 +166,24 @@
       "row_amount": "900.00", "row_currency": "EUR", "row_eur": "900.00",
       "reason": "no deposit within 3 business days",
       "_how": "Payout with no deposit. The 28th plus 3 business days ends Monday 2 February. W-1010 (900.00) lands on 3 February, one day too late. No credit at all in the window."
+    },
+    {
+      "source": "wise", "row_id": "W-1010", "row_account": "wise", "row_date": "2026-02-03",
+      "row_amount": "900.00", "row_currency": "EUR", "row_eur": "900.00",
+      "reason": "looks like a Stripe deposit, but no payout matches",
+      "_how": "900.00 on 3 February, one day after the window of po_012 ends (2 February). No payout takes it."
     }
   ],
   "summary": {
     "payouts": "15",
     "matched": "10",
     "payout_exceptions": "5",
-    "bank_exceptions": "2",
+    "bank_exceptions": "6",
     "internal_transfers": "2",
     "duplicates_dropped": "1",
-    "unmatched_bank_rows": "23",
+    "unmatched_bank_rows": "19",
     "matched_payout_eur": "5700.00",
     "bank_fees_eur": "4.43",
-    "_how": "15 payouts = 10 matched + 5 exceptions (po_003, 008, 009, 012, 015). Bank rows: 40 - 1 duplicate dropped - 2 identical Mercury rows to exceptions = 37, minus 4 rows in internal pairs = 33, minus 10 deposits matched = 23 left over. Matched payout EUR: 500 + 750 + 1000 + 420 + 500 - 80 + 500 + 800 + 310 + 1000 = 5700.00. Fees: 0.80 + 3.00 + 0.625 = 4.425, shown as 4.43."
+    "_how": "15 payouts = 10 matched + 5 exceptions (po_003, 008, 009, 012, 015). Bank rows: 40 - 1 duplicate dropped - 2 identical Mercury rows to exceptions = 37, minus 10 deposits matched by payouts = 27, minus 4 rows in internal pairs = 23, minus 4 STRIPE deposits that no payout took (W-1003, W-1006, W-1007, W-1010, sent to exceptions) = 19 left over. Bank exceptions: the 2 identical Mercury rows plus those 4 = 6. Matched payout EUR: 500 + 750 + 1000 + 420 + 500 - 80 + 500 + 800 + 310 + 1000 = 5700.00. Fees: 0.80 + 3.00 + 0.625 = 4.425, shown as 4.43."
   }
 }

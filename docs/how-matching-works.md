@@ -1,12 +1,13 @@
 # How matching works
 
-The tool runs five stages in a fixed order. The order matters, because each stage removes rows the next stage should not see.
+The tool runs six stages in a fixed order. The order matters, because each stage removes rows the next stage should not see.
 
 1. **Read and convert.** Each file goes through its adapter. Every row gets an EUR value at the ECB rate for its own date. Weekends and holidays use the latest earlier rate.
 2. **Duplicates.** A repeated bank id in one account is dropped and counted. Identical rows with no bank id go to exceptions.
 3. **Payout matching.** Each payout looks for candidates among all the de-duplicated bank rows.
 4. **Internal transfers.** The tool searches the bank rows that no payout used. It pairs outgoing and incoming rows across your accounts. Paired rows go to `internal.csv`. If a pair is unclear (a tie or a clash), every row involved goes to exceptions.
-5. **Write.** The tool writes the three CSV files and prints the summary.
+5. **Leftover Stripe deposits.** A bank row that still mentions a hint word (`STRIPE`) after stages 3 and 4 goes to exceptions with the reason `looks like a Stripe deposit, but no payout matches`. Other leftover rows are only counted in the summary.
+6. **Write.** The tool writes the three CSV files and prints the summary.
 
 Payout matching comes before internal transfers so that a real Stripe deposit cannot be taken as a transfer because an outgoing payment of a similar size exists. Duplicates come first so that a repeated row cannot create a false tie. A transfer that looks like a payout (same size, inside the window, no hint word) can still be picked by a payout when nothing ranks higher. A hint word, or a deposit in the payout's own currency, ranks higher, and a real tie goes to exceptions.
 

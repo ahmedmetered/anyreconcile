@@ -22,6 +22,8 @@ from anyreconcile.internal import is_stripe_hinted
 from anyreconcile.model import Match, Transaction, Unmatched, round2
 from anyreconcile.pairing import pair_up
 
+STRIPE_LEFTOVER = "looks like a Stripe deposit, but no payout matches"
+
 # A deposit within this share of the payout counts as a near miss in the exception reason.
 NEAR_MISS = Decimal("0.10")
 
@@ -75,6 +77,15 @@ def _why_unmatched(
     if near:
         return f"amount differs by {round2(min(near))} EUR, above tolerance"
     return f"no deposit within {cfg.window_days} business days"
+
+
+def stripe_leftovers(
+    pool: list[Transaction], cfg: Config
+) -> tuple[list[Unmatched], list[Transaction]]:
+    """Bank rows that mention a hint word but matched no payout need a person to look."""
+    issues = [Unmatched(t, STRIPE_LEFTOVER) for t in pool if is_stripe_hinted(t, cfg)]
+    rest = [t for t in pool if not is_stripe_hinted(t, cfg)]
+    return issues, rest
 
 
 def match_payouts(
