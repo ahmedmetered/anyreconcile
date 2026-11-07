@@ -11,7 +11,7 @@ import zipfile
 from bisect import bisect_right
 from dataclasses import replace
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from anyreconcile.model import Transaction
@@ -23,16 +23,31 @@ Rates = dict[str, list[tuple[date, Decimal]]]
 
 
 def load_rates(path: Path) -> Rates:
-    """Read an eurofxref-hist.csv file. "N/A" cells (no rate that day) are skipped."""
+    """Read an eurofxref-hist.csv file. "N/A" cells (no rate that day) are skipped.
+
+    A bad date or rate is an error that names the file and line, never a crash later on.
+    """
     rates: Rates = {}
     with path.open(newline="", encoding="utf-8-sig") as f:
-        for row in csv.DictReader(f):
-            day = date.fromisoformat(row["Date"])
+        reader = csv.DictReader(f)
+        if "Date" not in (reader.fieldnames or []):
+            raise ValueError(f"{path.name}: no Date column. Expected an ECB eurofxref-hist.csv")
+        for line, row in enumerate(reader, start=2):  # line 1 is the header
+            try:
+                day = date.fromisoformat(row["Date"])
+            except (ValueError, TypeError):
+                raise ValueError(f"{path.name} line {line}: bad date {row['Date']!r}") from None
             for currency, text in row.items():
                 # The real file ends every line with a comma, which makes an empty column name.
                 if currency == "Date" or not currency or not text or text.strip() == "N/A":
                     continue
-                rates.setdefault(currency, []).append((day, Decimal(text)))
+                try:
+                    value = Decimal(text)
+                except InvalidOperation:
+                    value = Decimal("NaN")
+                if not value.is_finite() or value <= 0:
+                    raise ValueError(f"{path.name} line {line}: bad {currency} rate {text!r}")
+                rates.setdefault(currency, []).append((day, value))
     for series in rates.values():
         series.sort()
     return rates

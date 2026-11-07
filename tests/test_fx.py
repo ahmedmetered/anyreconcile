@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-from anyreconcile.fx import rate, to_eur, with_eur
+from anyreconcile.fx import load_rates, rate, to_eur, with_eur
 from anyreconcile.model import Transaction
 
 
@@ -76,3 +76,33 @@ def test_aud3_with_eur_and_to_eur_pass_the_limit_on(rates):
     assert with_eur([t], rates, max_age_days=30)[0].eur == Decimal("100")
     with pytest.raises(ValueError, match="within 7 days"):
         to_eur(Decimal("1"), "USD", date(2026, 2, 20), rates)
+
+
+# A malformed rates file must be an error that says where, not a traceback or a division by zero.
+
+
+def rates_file(tmp_path, text):
+    p = tmp_path / "r.csv"
+    p.write_text(text)
+    return p
+
+
+@pytest.mark.parametrize(
+    ("text", "message"),
+    [
+        ("Day,USD,\n2026-01-05,1.10,\n", "no Date column"),
+        ("Date,USD,\nJan 5,1.10,\n", r"r\.csv line 2: bad date 'Jan 5'"),
+        ("Date,USD,\n2026-01-05,1.10,\n2026-01-06,abc,\n", r"r\.csv line 3: bad USD rate 'abc'"),
+        ("Date,USD,\n2026-01-05,0,\n", r"r\.csv line 2: bad USD rate '0'"),
+        ("Date,USD,\n2026-01-05,-1.2,\n", r"r\.csv line 2: bad USD rate '-1\.2'"),
+        ("Date,USD,\n2026-01-05,NaN,\n", r"r\.csv line 2: bad USD rate 'NaN'"),
+    ],
+)
+def test_malformed_rates_file_is_a_clear_error(tmp_path, text, message):
+    with pytest.raises(ValueError, match=message):
+        load_rates(rates_file(tmp_path, text))
+
+
+def test_na_cells_and_the_trailing_comma_are_still_fine(tmp_path):
+    loaded = load_rates(rates_file(tmp_path, "Date,USD,GBP,\n2026-01-05,1.10,N/A,\n"))
+    assert list(loaded) == ["USD"]

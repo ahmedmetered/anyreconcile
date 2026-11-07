@@ -164,3 +164,19 @@ def test_a_bad_setting_gives_a_clean_error_and_no_output(tmp_path, capsys):
     err = capsys.readouterr().err
     assert err.startswith("error: ") and "hint_words" in err and "Traceback" not in err
     assert not (tmp_path / "out").exists()
+
+
+def test_a_malformed_rates_file_gives_a_clean_error(tmp_path, capsys):
+    (tmp_path / "payouts.csv").write_text(STRIPE)
+    (tmp_path / "wise.csv").write_text(WISE)
+    (tmp_path / "rates.csv").write_text("Date,USD,\n2026-01-05,0,\n")
+    code = main(
+        [
+            "--stripe", str(tmp_path / "payouts.csv"),
+            "--bank", str(tmp_path / "wise.csv"),
+            "--rates", str(tmp_path / "rates.csv"),
+            "--out", str(tmp_path / "out"),
+        ]
+    )  # fmt: skip
+    err = capsys.readouterr().err
+    assert code == 2 and err.startswith("error: ") and "bad USD rate" in err
